@@ -11,6 +11,7 @@ project(yadi_dlms
 set(yadi_SRCS
     src/cosem.cpp
     src/dlms.cpp
+    src/emode.cpp
     src/hdlc.cpp
     src/wrapper.cpp
 )
