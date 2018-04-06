@@ -1,6 +1,6 @@
 ///@file
 
-#include "emode.h"
+#include <yadi/emode.h>
 #include <cstdint>
 #include <thread>
 #include <chrono>

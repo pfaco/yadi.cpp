@@ -19,7 +19,7 @@
 
 ///@file
 
-#include "wrapper.h"
+#include <yadi/wrapper.h>
 
 namespace yadi
 {
@@ -47,7 +47,7 @@ void Wrapper::disconnect(PhyLayer& phy)
     //no disconnection needed for Wrapper protocol
 }
 
-void Wrapper::send(PhyLayer& phy, std::vector<uint8_t>& buffer)
+void Wrapper::send(PhyLayer& phy, const std::vector<uint8_t>& buffer)
 {
     m_buffer_tx.clear();
     m_buffer_tx.push_back(WRAPPER_VERSION_MSB);

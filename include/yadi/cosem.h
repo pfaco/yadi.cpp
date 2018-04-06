@@ -47,7 +47,8 @@ public:
     Cosem();
     ~Cosem();
     CosemParams& parameters();
-    std::vector<uint8_t>& connection_request();
+    std::vector<uint8_t>&  rx_buffer();
+    const std::vector<uint8_t>& connection_request();
     bool parse_connection_response();
 
 private:

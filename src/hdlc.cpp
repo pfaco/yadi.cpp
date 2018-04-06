@@ -19,8 +19,8 @@
 
 ///@file
 
+#include <yadi/hdlc.h>
 #include <algorithm>
-#include "hdlc.h"
 
 namespace
 {
@@ -86,7 +86,7 @@ public:
         }
     }
 
-    void send(PhyLayer& phy, std::vector<uint8_t>& buffer)
+    void send(PhyLayer& phy, const std::vector<uint8_t>& buffer)
     {
         uint8_t control = I_CONTROL;
         m_connection.rx_sss += 1;
@@ -173,7 +173,7 @@ private:
             throw LinkLayerException("received invalid frame format");
         }
 
-        uint_fast16_t frame_size = ((m_buffer_rx[1] & 0x0F) << 8) | m_buffer_rx[2];
+        uint_fast16_t frame_size = ((m_buffer_rx[1+offset] & 0x0F) << 8) | m_buffer_rx[2+offset];
         if (frame_size != m_buffer_rx.size()-2-offset)
         {
             throw LinkLayerException("received invalid frame format");
@@ -205,16 +205,19 @@ private:
         uint_fast16_t fcs = m_buffer_rx[offset + addr_offset +1];
         fcs <<= 8;
         fcs |= m_buffer_rx[offset + addr_offset];
-        if (fcs != checksequence_calc(m_buffer_rx, offset+1, offset+addr_offset-1))
+        if (fcs != checksequence_calc(m_buffer_rx, offset+1, addr_offset-1))
         {
             throw LinkLayerException("received invalid check sequence");
         }
-    /*TODO
-        fcs = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).put(data, data.length-3, 2).getShort(0);
-        if (fcs != HdlcLinkLayer.calcFcs(data, 1, data.length-4)) {
-            //TODO throw new LinkLayerException(LinkLayerExceptionReason.RECEIVED_INVALID_CHECK_SEQUENCE);
+
+        fcs = m_buffer_rx[m_buffer_rx.size()-2];
+        fcs <<= 8;
+        fcs |= m_buffer_rx[m_buffer_rx.size()-3];
+        if (fcs != checksequence_calc(m_buffer_rx, offset+1, m_buffer_rx.size()-4-offset))
+        {
+            throw LinkLayerException("received invalid check sequence");
         }
-    */
+
         if ( (m_connection.rx_control & 0x10) != 0x10)
         {
             throw LinkLayerException("segmentation not supported");
@@ -264,7 +267,7 @@ private:
         }
     }
 
-    void m_frame_update(std::vector<uint8_t> &data)
+    void m_frame_update(const std::vector<uint8_t> &data)
     {
         for (uint8_t b : data)
         {
@@ -350,7 +353,7 @@ private:
             return;
         }
 
-        if (size < 5 || m_buffer_rx[offset] != 0x81 || m_buffer_rx[1] != 0x80)
+        if (size < 5 || m_buffer_rx[offset] != 0x81 || m_buffer_rx[offset+1] != 0x80)
         {
             throw LinkLayerException("received invalid frame format");
         }
@@ -429,7 +432,7 @@ void Hdlc::disconnect(PhyLayer& phy)
  * @param phy
  * @param buffer
  */
-void Hdlc::send(PhyLayer& phy, std::vector<uint8_t> &buffer)
+void Hdlc::send(PhyLayer& phy, const std::vector<uint8_t> &buffer)
 {
     m_pimpl->send(phy, buffer);
 }

@@ -3,7 +3,7 @@
 #ifndef INCLUDE_EMODE_H_
 #define INCLUDE_EMODE_H_
 
-#include "phy_layer.h"
+#include <yadi/phy_layer.h>
 
 namespace yadi
 {

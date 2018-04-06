@@ -19,46 +19,27 @@
 
 ///@file
 
-#ifndef SERIAL_H_
-#define SERIAL_H_
+#ifndef INCLUDE_DLMS_H_
+#define INCLUDE_DLMS_H_
 
-#include "phy_layer.h"
-#include <memory.h>
+#include <yadi/link_layer.h>
+#include <yadi/phy_layer.h>
+#include <yadi/cosem.h>
 
 namespace yadi
 {
 
-enum class SerialParity
-{
-    NONE,
-    ODD,
-    EVEN
-};
-
-enum class SerialDataBits
-{
-    _7,
-    _8
-};
-
-enum class SerialStopBits
-{
-    _1,
-    _1_point_5,
-    _2
-};
-
-class Serial : public PhyLayer
+class DlmsClient
 {
 public:
-    static std::vector<std::string> port_list();
-
-    explicit Serial(const std::string &port_name);
-    ~Serial();
-    void send(const std::vector<uint8_t> &buffer) override;
-    void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, frame_complete_fptr *frame_complete) override;
-    void add_listener(const std::shared_ptr<PhyLayerListener> &listener) override;
-    void set_params(unsigned baud, SerialParity parity, SerialDataBits databits, SerialStopBits stopbits);
+    explicit DlmsClient(LinkLayer &llayer);
+    ~DlmsClient();
+    CosemParams& parameters();
+    void connect(PhyLayer &phy);
+    void disconnect(PhyLayer &phy);
+    void get(PhyLayer &phy, AttributeDescriptor &att);
+    void set(PhyLayer &phy, AttributeDescriptor &att);
+    void action(PhyLayer &phy, AttributeDescriptor &att);
 
 private:
     class impl;
@@ -67,4 +48,4 @@ private:
 
 }
 
-#endif /* SERIAL_H_ */
+#endif /* INCLUDE_DLMS_H_ */

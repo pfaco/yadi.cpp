@@ -19,7 +19,7 @@
 
 ///@file
 
-#include "cosem.h"
+#include <yadi/cosem.h>
 
 namespace yadi
 {
@@ -32,7 +32,11 @@ public:
         return m_params;
     }
 
-    std::vector<uint8_t>& connection_request()
+    std::vector<uint8_t>& rx_buffer() {
+        return m_buffer_rx;
+    }
+
+    const std::vector<uint8_t>& connection_request()
     {
         return m_buffer_tx;
     }
@@ -44,8 +48,8 @@ public:
 
 private:
     CosemParams m_params;
-    std::vector<uint8_t> m_buffer_rx;
-    std::vector<uint8_t> m_buffer_tx;
+    std::vector<uint8_t> m_buffer_rx{128};
+    std::vector<uint8_t> m_buffer_tx{128};
 };
 
 Cosem::Cosem() : m_pimpl{std::make_unique<impl>()} {}
@@ -56,7 +60,11 @@ CosemParams& Cosem::parameters()
     return m_pimpl->parameters();
 }
 
-std::vector<uint8_t>& Cosem::connection_request()
+std::vector<uint8_t>& Cosem::rx_buffer() {
+    return m_pimpl->rx_buffer();
+}
+
+const std::vector<uint8_t>& Cosem::connection_request()
 {
     return m_pimpl->connection_request();
 }

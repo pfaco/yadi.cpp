@@ -22,10 +22,10 @@
 #ifndef LINK_LAYER_H_
 #define LINK_LAYER_H_
 
+#include <yadi/phy_layer.h>
 #include <cstdint>
 #include <vector>
 
-#include "phy_layer.h"
 
 namespace yadi {
 
@@ -35,7 +35,7 @@ public:
     virtual ~LinkLayer(){};
     virtual void connect(PhyLayer &phy) = 0;
     virtual void disconnect(PhyLayer &phy) = 0;
-    virtual void send(PhyLayer &phy, std::vector<uint8_t> &buffer) = 0;
+    virtual void send(PhyLayer &phy, const std::vector<uint8_t> &buffer) = 0;
     virtual void read(PhyLayer &phy, std::vector<uint8_t> &buffer) = 0;
 };
 

@@ -22,7 +22,7 @@
 #ifndef WRAPPER_H_
 #define WRAPPER_H_
 
-#include "link_layer.h"
+#include <yadi/link_layer.h>
 
 namespace yadi
 {
@@ -39,7 +39,7 @@ class Wrapper : public LinkLayer
 public:
     void connect(PhyLayer& phy) override;
     void disconnect(PhyLayer& phy) override;
-    void send(PhyLayer& phy, std::vector<uint8_t>& buffer) override;
+    void send(PhyLayer& phy, const std::vector<uint8_t>& buffer) override;
     void read(PhyLayer& phy, std::vector<uint8_t>& buffer) override;
     WrapperParams& parameters();
 private:

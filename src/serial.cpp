@@ -19,7 +19,7 @@
 
 ///@file
 
-#include "serial.h"
+#include <yadi/serial.h>
 #include <serial/serial.h>
 #include <chrono>
 
