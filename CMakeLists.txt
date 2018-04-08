@@ -34,12 +34,12 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 ## Install headers
-install(FILES   include/cosem.h
-                include/dlms.h
-                include/hdlc.h
-                include/link_layer.h
-                include/phy_layer.h
-                include/wrapper.h
+install(FILES   include/yadi/cosem.h
+                include/yadi/dlms.h
+                include/yadi/hdlc.h
+                include/yadi/link_layer.h
+                include/yadi/phy_layer.h
+                include/yadi/wrapper.h
         DESTINATION ${INSTALL_INCLUDE_DIR}/yadi)
 
 ## Install CMake files

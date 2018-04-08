@@ -22,9 +22,9 @@
 #ifndef LINK_LAYER_H_
 #define LINK_LAYER_H_
 
-#include <yadi/phy_layer.h>
 #include <cstdint>
 #include <vector>
+#include <yadi/phy_layer.h>
 
 
 namespace yadi {

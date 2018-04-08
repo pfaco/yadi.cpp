@@ -33,6 +33,7 @@ public:
     }
 
     std::vector<uint8_t>& rx_buffer() {
+        m_buffer_rx.clear();
         return m_buffer_rx;
     }
 
