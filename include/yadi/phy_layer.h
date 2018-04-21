@@ -27,6 +27,7 @@
 #include <memory>
 #include <exception>
 #include <sstream>
+#include <string>
 
 namespace yadi
 {

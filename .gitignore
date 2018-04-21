@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+
+# Cppcheck files
+*.cppcheck
+
+# Eclipse files
+*.cproject
+*.project
+
+# CmakeFiles
+CmakeFiles/*

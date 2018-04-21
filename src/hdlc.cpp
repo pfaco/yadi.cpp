@@ -96,9 +96,9 @@ public:
         m_connection.tx_sss += 1;
         m_connection.tx_sss &= 0x07;
         m_frame_init(control, buffer.size() + 3);
-        m_buffer_rx.push_back(0xE6);
-        m_buffer_rx.push_back(0xE6);
-        m_buffer_rx.push_back(0);
+        m_buffer_tx.push_back(0xE6);
+        m_buffer_tx.push_back(0xE6);
+        m_buffer_tx.push_back(0);
         m_frame_update(buffer);
         phy.send(m_frame_close());
     }

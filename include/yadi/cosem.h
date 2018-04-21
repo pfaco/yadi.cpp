@@ -29,9 +29,22 @@
 namespace yadi
 {
 
+enum AuthenticationType
+{
+    PUBLIC = 0, LLS = 1, HLS_SHA1 = 2, HLS_SHA256 = 3, HLS_MD5 = 4, HLS_GCM = 5,
+};
+
+enum class SecurityType
+{
+    NONE, AUTHENTICATION, ENCRYPTION, AUTHENTICATION_ENCRYPTION
+};
+
 struct CosemParams
 {
-
+    AuthenticationType authentication_type;
+    SecurityType security_type;
+    std::array<uint8_t,8> system_title;
+    std::array<uint8_t,8> secret;
 };
 
 struct AttributeDescriptor

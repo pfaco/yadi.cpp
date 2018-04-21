@@ -33,13 +33,10 @@ public:
     void connect(PhyLayer &phy)
     {
         m_llayer.connect(phy);
-
-        do
-        {
+        do {
             m_llayer.send(phy, m_cosem.connection_request());
             m_llayer.read(phy, m_cosem.rx_buffer());
-        }
-        while (!m_cosem.parse_connection_response());
+        } while (!m_cosem.parse_connection_response());
     }
 
     void disconnect(PhyLayer &phy)
