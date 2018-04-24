@@ -11,10 +11,7 @@ namespace yadi {
 
     class Security {
     public:
-        static std::vector<uint8_t> generate_challanger(const CosemParams &params) {
-            std::vector<uint8_t> buffer;
-            return buffer;
-        }
+        static void generate_challenger(unsigned size, std::vector<uint8_t> &buffer);
     };
 
 }

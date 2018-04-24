@@ -15,6 +15,7 @@ set(yadi_SRC
     src/dlms.cpp
     src/emode.cpp
     src/hdlc.cpp
+        src/parser.cpp
     src/wrapper.cpp
         src/security.cpp)
 

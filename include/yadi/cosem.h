@@ -25,6 +25,7 @@
 #include <vector>
 #include <cstdint>
 #include <memory>
+#include <algorithm>
 
 namespace yadi
 {
@@ -39,19 +40,50 @@ enum class SecurityType
     NONE, AUTHENTICATION, ENCRYPTION, AUTHENTICATION_ENCRYPTION
 };
 
+enum class ReferenceType
+{
+    LOGICAL_NAME, /* TODO SHORT_NAME */
+};
+
+enum CosemClasses {
+    DATA = 1,
+    REGISTER = 3,
+    CLOCK = 8,
+    ASSOCIATION_LN = 15,
+};
+
 struct CosemParams
 {
-    AuthenticationType authentication_type;
-    SecurityType security_type;
-    std::array<uint8_t,8> system_title;
-    std::array<uint8_t,8> secret;
+    AuthenticationType authentication_type = AuthenticationType ::PUBLIC;
+    SecurityType security_type = SecurityType::NONE;
+    ReferenceType reference_type = ReferenceType::LOGICAL_NAME;
+    std::array<uint8_t,8> system_title{0};
+    std::array<uint8_t,8> secret{0};
+    std::array<uint8_t,16> ak{0};
+    std::array<uint8_t,16> ek{0};
+    unsigned challenger_size = 8;
 };
 
 struct AttributeDescriptor
 {
-    uint16_t class_id;
-    uint16_t index;
-    uint8_t obis[6];
+    uint16_t m_class_id;
+    uint16_t m_index;
+    std::array<uint8_t,6> m_obis;
+    std::vector<uint8_t> m_response_data;
+
+    AttributeDescriptor(uint16_t class_id, uint16_t index, std::initializer_list<uint8_t> &&obis)
+            : m_class_id{class_id}, m_index{index}
+    {
+        if (obis.size() != m_obis.size()) {
+            throw std::invalid_argument("bad obis size");
+        }
+        std::copy_n(obis.begin(), m_obis.size(), m_obis.begin());
+    }
+
+    std::vector<uint8_t>& response_data() {
+        return m_response_data;
+    }
+
 };
 
 class Cosem
@@ -67,6 +99,22 @@ public:
 private:
     class impl;
     std::unique_ptr<impl> m_pimpl;
+};
+
+class CosemException : public std::exception
+{
+public:
+    explicit CosemException(const std::string &str) : m_what{str} {}
+    CosemException (const CosemException& other) : m_what{other.m_what} {}
+    virtual ~CosemException() throw() {}
+    const CosemException& operator=(CosemException) = delete; //disable copy constructor
+    virtual const char* what () const throw ()
+    {
+        return m_what.c_str();
+    }
+
+private:
+    std::string m_what;
 };
 
 }

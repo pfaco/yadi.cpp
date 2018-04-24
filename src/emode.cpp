@@ -21,7 +21,7 @@ namespace yadi
         phy.read(buffer_rx, 1000, is_frame_complete);
         accept_baud_frame[2] = buffer_rx[4] > 0x35 ? 0x35 : buffer_rx[4];
         phy.send(accept_baud_frame);
-        std::this_thread::sleep_for(std::chrono::milliseconds(550));//Thread.sleep(550);
+        //TODO std::this_thread::sleep_for(std::chrono::milliseconds(550));
     }
 
 
