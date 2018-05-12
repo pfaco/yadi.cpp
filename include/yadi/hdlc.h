@@ -29,10 +29,44 @@
 namespace yadi
 {
 
+class client_addr
+{
+public:
+    client_addr(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)} { };
+
+    auto value() const -> uint8_t {
+        return m_value;
+    }
+
+private:
+    uint8_t m_value;
+};
+
+class server_addr
+{
+public:
+    server_addr(uint8_t value) : m_value{(value << 1u) | 0x01}, m_size{1} {};
+    server_addr(uint8_t physical, uint8_t logical) : m_value{(physical << 1u) | 0x01}, m_size{2} {};
+    server_addr(uint16_t physical, uint16_t logical) :
+            m_value{physical << 17}, m_size{4} {};
+
+    auto value() -> uint32_t {
+        return m_value;
+    }
+
+    auto size() -> unsigned {
+        return m_size;
+    }
+
+private:
+    uint32_t m_value;
+    unsigned m_size;
+};
+
 /**
  * This class holds the parameters of a hdlc object
  */
-struct HdlcParams
+struct hdlc_params
 {
     /**
      * The timeout for a response, in milliseconds
@@ -52,17 +86,12 @@ struct HdlcParams
     /**
      * Enconded server address
      */
-    uint32_t server_addr = 0x0002FEFF;
-
-    /**
-     * Number of bytes in the server address
-     */
-    uint8_t server_addr_len = 0x04;
+    server_addr server_addr = 0x0002FEFF;
 
     /**
      * Enconded client address
      */
-    uint8_t client_addr = 0x03;
+    client_addr client_addr = 0x01;
 
     /**
      * Maximum number of retries
@@ -73,16 +102,16 @@ struct HdlcParams
 /**
  * HDLC class
  */
-class Hdlc : public LinkLayer
+class hdlc : public link_layer
 {
 public:
-    Hdlc();
-    ~Hdlc();
-    HdlcParams& parameters();
-    void connect(PhyLayer& phy) override;
-    void disconnect(PhyLayer& phy) override;
-    void send(PhyLayer& phy, const std::vector<uint8_t>& buffer) override;
-    void read(PhyLayer& phy, std::vector<uint8_t>& buffer) override;
+    hdlc();
+    ~hdlc();
+    auto parameters() -> hdlc_params& ;
+    void connect(phy_layer& phy) override;
+    void disconnect(phy_layer& phy) override;
+    void send(phy_layer& phy, const std::vector<uint8_t>& buffer) override;
+    void read(phy_layer& phy, std::vector<uint8_t>& buffer) override;
 
 private:
     class impl;

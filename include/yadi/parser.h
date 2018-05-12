@@ -36,12 +36,14 @@ enum TypeTags
     TIME = 27,
 };
 
-class Parser
+class parser
 {
 public:
+    static void insert_size(std::vector<uint8_t> &buffer, unsigned size);
+    static auto pack_octet_string(const std::vector<uint8_t> &value) -> std::vector<uint8_t>;
     static void pack_octet_string(std::vector<uint8_t> &buffer, const std::vector<uint8_t> &value);
     static void pack_string(std::vector<uint8_t> &buffer, const std::string &str);
-    static std::string to_string(std::vector<uint8_t> &buffer);
+    static auto to_string(std::vector<uint8_t> &buffer) -> std::string;
 };
 
 }

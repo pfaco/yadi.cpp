@@ -27,7 +27,7 @@ namespace yadi
 static const uint8_t WRAPPER_VERSION_MSB = 0x00;
 static const uint8_t WRAPPER_VERSION_LSB = 0x01;
 
-static bool wrapper_frame_complete(const std::vector<uint8_t>& buffer)
+static auto wrapper_frame_complete(const std::vector<uint8_t>& buffer) -> bool
 {
     if (buffer.size() < 9) {
         return false;
@@ -37,42 +37,69 @@ static bool wrapper_frame_complete(const std::vector<uint8_t>& buffer)
     return size == buffer.size();
 }
 
-void Wrapper::connect(PhyLayer& phy)
+class wrapper::impl
 {
-    //no conenction needed for Wrapper protocol
-}
-
-void Wrapper::disconnect(PhyLayer& phy)
-{
-    //no disconnection needed for Wrapper protocol
-}
-
-void Wrapper::send(PhyLayer& phy, const std::vector<uint8_t>& buffer)
-{
-    m_buffer_tx.clear();
-    m_buffer_tx.push_back(WRAPPER_VERSION_MSB);
-    m_buffer_tx.push_back(WRAPPER_VERSION_LSB);
-    m_buffer_tx.push_back(buffer.size() >> 8);
-    m_buffer_tx.push_back(buffer.size());
-    m_buffer_tx.push_back(m_params.w_port_destination >> 8);
-    m_buffer_tx.push_back(m_params.w_port_destination);
-    m_buffer_tx.push_back(m_params.w_port_source >> 8);
-    m_buffer_tx.push_back(m_params.w_port_source);
-    for (uint8_t b : buffer) {
-        m_buffer_tx.push_back(b);
+public:
+    auto parameters() -> wrapper_params&
+    {
+        return m_params;
     }
-    phy.send(m_buffer_tx);
+
+    void send(phy_layer& phy, const std::vector<uint8_t>& buffer)
+    {
+        m_buffer_tx.clear();
+        m_buffer_tx.push_back(WRAPPER_VERSION_MSB);
+        m_buffer_tx.push_back(WRAPPER_VERSION_LSB);
+        m_buffer_tx.push_back(buffer.size() >> 8);
+        m_buffer_tx.push_back(buffer.size());
+        m_buffer_tx.push_back(m_params.w_port_destination >> 8);
+        m_buffer_tx.push_back(m_params.w_port_destination);
+        m_buffer_tx.push_back(m_params.w_port_source >> 8);
+        m_buffer_tx.push_back(m_params.w_port_source);
+        for (uint8_t b : buffer) {
+            m_buffer_tx.push_back(b);
+        }
+        phy.send(m_buffer_tx);
+    }
+
+    void read(phy_layer& phy, std::vector<uint8_t>& buffer)
+    {
+        m_buffer_rx.clear();
+        phy.read(m_buffer_rx, m_params.timeout_millis, wrapper_frame_complete);
+    }
+
+private:
+    wrapper_params m_params;
+    std::vector<uint8_t> m_buffer_rx{128};
+    std::vector<uint8_t> m_buffer_tx{128};
+};
+
+wrapper::wrapper() : m_impl{std::make_unique<impl>()} {}
+wrapper::~wrapper() = default;
+
+void wrapper::connect(phy_layer& phy)
+{
+    //wrapper protocol doesn't have connection
 }
 
-void Wrapper::read(PhyLayer& phy, std::vector<uint8_t>& buffer)
+void wrapper::disconnect(phy_layer& phy)
 {
-    m_buffer_rx.clear();
-    phy.read(m_buffer_rx, m_params.timeout_millis, wrapper_frame_complete);
+    //wrapper protocol doesn't have disconnection
 }
 
-WrapperParams& Wrapper::parameters()
+void wrapper::send(phy_layer& phy, const std::vector<uint8_t>& buffer)
 {
-    return m_params;
+    m_impl->send(phy, buffer);
+}
+
+void wrapper::read(phy_layer& phy, std::vector<uint8_t>& buffer)
+{
+    m_impl->read(phy, buffer);
+}
+
+auto wrapper::parameters() -> wrapper_params&
+{
+    return m_impl->parameters();
 }
 
 }

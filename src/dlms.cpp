@@ -24,76 +24,82 @@
 namespace yadi
 {
 
-class DlmsClient::impl
+class dlms_client::impl
 {
 public:
-    explicit impl(LinkLayer &llayer) : m_llayer{llayer} {}
-    CosemParams& parameters() { return m_cosem.parameters(); }
+    explicit impl(link_layer &llayer) : m_llayer{llayer} {};
 
-    void connect(PhyLayer &phy)
+    auto parameters() -> cosem_params&
     {
-        m_llayer.connect(phy);
-        do {
-            m_llayer.send(phy, m_cosem.connection_request());
-            m_llayer.read(phy, m_cosem.rx_buffer());
-        } while (!m_cosem.parse_connection_response());
+        return m_cosem.parameters();
     }
 
-    void disconnect(PhyLayer &phy)
+    void connect(phy_layer &phy)
+    {
+        m_llayer.connect(phy);
+        do
+        {
+            m_llayer.send(phy, m_cosem.connection_request());
+            m_llayer.read(phy, m_cosem.rx_buffer());
+        }
+        while (!m_cosem.parse_connection_response());
+    }
+
+    void disconnect(phy_layer &phy)
     {
         m_llayer.disconnect(phy);
     }
 
-    void get(PhyLayer &phy, AttributeDescriptor &att)
+    void get(phy_layer &phy, att_descriptor &att)
     {
 
     }
 
-    void set(PhyLayer &phy, AttributeDescriptor &att)
+    void set(phy_layer &phy, att_descriptor &att)
     {
 
     }
 
-    void action(PhyLayer &phy, AttributeDescriptor &att)
+    void action(phy_layer &phy, att_descriptor &att)
     {
 
     }
 
 private:
-    LinkLayer &m_llayer;
-    Cosem m_cosem;
+    link_layer &m_llayer;
+    cosem m_cosem;
 };
 
-DlmsClient::DlmsClient(LinkLayer &llayer) : m_pimpl{std::make_unique<impl>(llayer)} {}
+dlms_client::dlms_client(link_layer &llayer) : m_pimpl{std::make_unique<impl>(llayer)} {}
 
-DlmsClient::~DlmsClient() {}
+dlms_client::~dlms_client() = default;
 
-CosemParams& DlmsClient::parameters()
+auto dlms_client::parameters() -> cosem_params&
 {
     return m_pimpl->parameters();
 }
 
-void DlmsClient::connect(PhyLayer &phy)
+void dlms_client::connect(phy_layer &phy)
 {
     m_pimpl->connect(phy);
 }
 
-void DlmsClient::disconnect(PhyLayer &phy)
+void dlms_client::disconnect(phy_layer &phy)
 {
     m_pimpl->disconnect(phy);
 }
 
-void DlmsClient::get(PhyLayer &phy, AttributeDescriptor &att)
+void dlms_client::get(phy_layer &phy, att_descriptor &att)
 {
     m_pimpl->get(phy, att);
 }
 
-void DlmsClient::set(PhyLayer &phy, AttributeDescriptor &att)
+void dlms_client::set(phy_layer &phy, att_descriptor &att)
 {
     m_pimpl->get(phy, att);
 }
 
-void DlmsClient::action(PhyLayer &phy, AttributeDescriptor &att)
+void dlms_client::action(phy_layer &phy, att_descriptor &att)
 {
     m_pimpl->get(phy, att);
 }

@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8.3)
 # Allow VERSION in the 'project'command
 cmake_policy(SET CMP0048 NEW)
 
+set(CMAKE_CXX_STANDARD 17)
+
 project(yadi_dlms
         VERSION 0.0.1
         LANGUAGES CXX)
@@ -15,9 +17,9 @@ set(yadi_SRC
     src/dlms.cpp
     src/emode.cpp
     src/hdlc.cpp
-        src/parser.cpp
+    src/parser.cpp
     src/wrapper.cpp
-        src/security.cpp)
+    src/security.cpp)
 
 ## Add yadi library
 add_library(${PROJECT_NAME} STATIC ${yadi_SRC})

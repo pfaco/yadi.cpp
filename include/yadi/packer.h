@@ -15,7 +15,7 @@ namespace yadi
 class StructPacker {
 public:
     void add_element(std::vector<uint8_t> data);
-    std::vector<uint8_t> pack();
+    auto pack() -> std::vector<uint8_t> ;
 
 private:
     std::vector<uint8_t> m_data;

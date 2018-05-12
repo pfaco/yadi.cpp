@@ -29,23 +29,23 @@
 
 namespace yadi {
 
-class LinkLayer
+class link_layer
 {
 public:
-    virtual ~LinkLayer(){};
-    virtual void connect(PhyLayer &phy) = 0;
-    virtual void disconnect(PhyLayer &phy) = 0;
-    virtual void send(PhyLayer &phy, const std::vector<uint8_t> &buffer) = 0;
-    virtual void read(PhyLayer &phy, std::vector<uint8_t> &buffer) = 0;
+    virtual ~link_layer(){};
+    virtual void connect(phy_layer &phy) = 0;
+    virtual void disconnect(phy_layer &phy) = 0;
+    virtual void send(phy_layer &phy, const std::vector<uint8_t> &buffer) = 0;
+    virtual void read(phy_layer &phy, std::vector<uint8_t> &buffer) = 0;
 };
 
-class LinkLayerException : public std::exception
+class link_layer_exception : public std::exception
 {
 public:
-    explicit LinkLayerException(const std::string &str) : m_what{str} {}
-    LinkLayerException (const LinkLayerException& other) : m_what(other.m_what) {}
-    virtual ~LinkLayerException() throw() {}
-    const LinkLayerException& operator=(LinkLayerException) = delete; //disable copy constructors
+    explicit link_layer_exception(const std::string &str) : m_what{str} {}
+    link_layer_exception (const link_layer_exception& other) : m_what(other.m_what) {}
+    virtual ~link_layer_exception() throw() {}
+    const link_layer_exception& operator=(link_layer_exception) = delete; //disable copy constructors
     virtual const char* what () const throw ()
     {
         return m_what.c_str();

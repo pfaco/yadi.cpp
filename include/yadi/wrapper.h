@@ -23,29 +23,31 @@
 #define WRAPPER_H_
 
 #include <yadi/link_layer.h>
+#include <memory>
 
 namespace yadi
 {
 
-struct WrapperParams
+struct wrapper_params
 {
     uint16_t w_port_source = 0x01;
     uint16_t w_port_destination = 0x01;
     uint16_t timeout_millis = 2000;
 };
 
-class Wrapper : public LinkLayer
+class wrapper : public link_layer
 {
 public:
-    void connect(PhyLayer& phy) override;
-    void disconnect(PhyLayer& phy) override;
-    void send(PhyLayer& phy, const std::vector<uint8_t>& buffer) override;
-    void read(PhyLayer& phy, std::vector<uint8_t>& buffer) override;
-    WrapperParams& parameters();
+    wrapper();
+    ~wrapper();
+    void connect(phy_layer& phy) override;
+    void disconnect(phy_layer& phy) override;
+    void send(phy_layer& phy, const std::vector<uint8_t>& buffer) override;
+    void read(phy_layer& phy, std::vector<uint8_t>& buffer) override;
+    auto parameters() -> wrapper_params&;
 private:
-    WrapperParams m_params;
-    std::vector<uint8_t> m_buffer_rx{128};
-    std::vector<uint8_t> m_buffer_tx{128};
+    class impl;
+    std::unique_ptr<impl> m_impl;
 };
 
 }

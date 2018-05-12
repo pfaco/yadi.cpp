@@ -29,17 +29,17 @@
 namespace yadi
 {
 
-class DlmsClient
+class dlms_client
 {
 public:
-    explicit DlmsClient(LinkLayer &llayer);
-    ~DlmsClient();
-    CosemParams& parameters();
-    void connect(PhyLayer &phy);
-    void disconnect(PhyLayer &phy);
-    void get(PhyLayer &phy, AttributeDescriptor &att);
-    void set(PhyLayer &phy, AttributeDescriptor &att);
-    void action(PhyLayer &phy, AttributeDescriptor &att);
+    explicit dlms_client(link_layer &llayer);
+    ~dlms_client();
+    auto parameters() -> cosem_params&;
+    void connect(phy_layer &phy);
+    void disconnect(phy_layer &phy);
+    void get(phy_layer &phy, att_descriptor &att);
+    void set(phy_layer &phy, att_descriptor &att);
+    void action(phy_layer &phy, att_descriptor &att);
 
 private:
     class impl;

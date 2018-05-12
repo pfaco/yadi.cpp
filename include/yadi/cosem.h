@@ -52,9 +52,9 @@ enum CosemClasses {
     ASSOCIATION_LN = 15,
 };
 
-struct CosemParams
+struct cosem_params
 {
-    AuthenticationType authentication_type = AuthenticationType ::PUBLIC;
+    AuthenticationType authentication_type = AuthenticationType::PUBLIC;
     SecurityType security_type = SecurityType::NONE;
     ReferenceType reference_type = ReferenceType::LOGICAL_NAME;
     std::array<uint8_t,8> system_title{0};
@@ -64,15 +64,11 @@ struct CosemParams
     unsigned challenger_size = 8;
 };
 
-struct AttributeDescriptor
+class att_descriptor
 {
-    uint16_t m_class_id;
-    uint16_t m_index;
-    std::array<uint8_t,6> m_obis;
-    std::vector<uint8_t> m_response_data;
-
-    AttributeDescriptor(uint16_t class_id, uint16_t index, std::initializer_list<uint8_t> &&obis)
-            : m_class_id{class_id}, m_index{index}
+public:
+    att_descriptor(uint16_t class_id, uint8_t index, const std::initializer_list<uint8_t> &obis)
+            : m_class_id{class_id}, m_index{index}, m_obis{0}
     {
         if (obis.size() != m_obis.size()) {
             throw std::invalid_argument("bad obis size");
@@ -80,20 +76,46 @@ struct AttributeDescriptor
         std::copy_n(obis.begin(), m_obis.size(), m_obis.begin());
     }
 
-    std::vector<uint8_t>& response_data() {
+    auto class_id() const -> uint16_t {
+        return m_class_id;
+    }
+
+    auto obis() const -> std::array<uint8_t,6> {
+        return m_obis;
+    }
+
+    auto index() const -> uint8_t {
+        return m_index;
+    }
+
+    auto response_data() const -> std::vector<uint8_t> {
         return m_response_data;
     }
 
+    void get_request_data(std::vector<uint8_t> &buffer) const {
+        buffer.insert(buffer.end(), m_request_data.begin(), m_request_data.end());
+    }
+
+    void set_request_data(std::vector<uint8_t> data) {
+        m_request_data = std::move(data);
+    }
+
+private:
+    const uint16_t m_class_id;
+    const uint8_t m_index;
+    std::array<uint8_t,6> m_obis;
+    std::vector<uint8_t> m_request_data;
+    std::vector<uint8_t> m_response_data;
 };
 
-class Cosem
+class cosem
 {
 public:
-    Cosem();
-    ~Cosem();
-    CosemParams& parameters();
-    std::vector<uint8_t>&  rx_buffer();
-    const std::vector<uint8_t>& connection_request();
+    cosem();
+    ~cosem();
+    auto parameters() -> cosem_params&;
+    auto rx_buffer() -> std::vector<uint8_t>&;
+    auto connection_request() -> const std::vector<uint8_t>& ;
     bool parse_connection_response();
 
 private:
@@ -101,13 +123,13 @@ private:
     std::unique_ptr<impl> m_pimpl;
 };
 
-class CosemException : public std::exception
+class cosem_exception : public std::exception
 {
 public:
-    explicit CosemException(const std::string &str) : m_what{str} {}
-    CosemException (const CosemException& other) : m_what{other.m_what} {}
-    virtual ~CosemException() throw() {}
-    const CosemException& operator=(CosemException) = delete; //disable copy constructor
+    explicit cosem_exception(const std::string &str) : m_what{str} {}
+    cosem_exception (const cosem_exception& other) : m_what{other.m_what} {}
+    virtual ~cosem_exception() throw() {}
+    const cosem_exception& operator=(cosem_exception) = delete; //disable copy constructor
     virtual const char* what () const throw ()
     {
         return m_what.c_str();

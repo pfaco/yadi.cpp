@@ -42,7 +42,7 @@ namespace yadi
 /*
  * Private local-global functions
  */
-static uint16_t checksequence_calc(std::vector<uint8_t> &data, size_t offset, size_t size);
+static auto checksequence_calc(std::vector<uint8_t> &data, size_t offset, size_t size) -> uint16_t;
 static bool is_frame_complete(const std::vector<uint8_t> &data);
 
 struct HdlcConnection
@@ -57,16 +57,16 @@ struct HdlcConnection
     uint16_t max_information_field_length_rx = 128;
 };
 
-class Hdlc::impl
+class hdlc::impl
 {
 public:
 
-    HdlcParams& parameters()
+    auto parameters() -> hdlc_params&
     {
         return m_params;
     }
 
-    void connect(PhyLayer& phy)
+    void connect(phy_layer& phy)
     {
         m_connection.rx_sss = 0;
         m_connection.tx_sss = 0;
@@ -75,18 +75,18 @@ public:
         m_parse_snrm_response();
     }
 
-    void disconnect(PhyLayer& phy)
+    void disconnect(phy_layer& phy)
     {
         m_frame_init(DISC_CONTROL, 0);
         phy.send(m_frame_close());
         m_read_data(phy);
         if (m_connection.rx_control != UA_CONTROL)
         {
-            throw LinkLayerException("invalid disconnection response");
+            throw link_layer_exception("invalid disconnection response");
         }
     }
 
-    void send(PhyLayer& phy, const std::vector<uint8_t>& buffer)
+    void send(phy_layer& phy, const std::vector<uint8_t>& buffer)
     {
         uint8_t control = I_CONTROL;
         m_connection.rx_sss += 1;
@@ -103,19 +103,19 @@ public:
         phy.send(m_frame_close());
     }
 
-    void read(PhyLayer& phy, std::vector<uint8_t>& buffer)
+    void read(phy_layer& phy, std::vector<uint8_t>& buffer)
     {
         m_read_data(phy);
         size_t offset = m_connection.rx_payload_offset;
 
         if (m_buffer_rx.size() < (offset + 3))
         {
-            throw LinkLayerException("received invalid LLC bytes");
+            throw link_layer_exception("received invalid LLC bytes");
         }
 
         if (m_buffer_rx[offset] != 0xE6 || m_buffer_rx[offset + 1] != 0xE7 || m_buffer_rx[offset + 2] != 0x00)
         {
-            throw LinkLayerException("received invalid LLC bytes");
+            throw link_layer_exception("received invalid LLC bytes");
         }
 
         for (size_t i = 3; i < m_connection.rx_payload_size; ++i)
@@ -125,12 +125,12 @@ public:
     }
 
 private:
-    HdlcParams m_params;
+    hdlc_params m_params;
     HdlcConnection m_connection;
     std::vector<uint8_t> m_buffer_rx{128};
     std::vector<uint8_t> m_buffer_tx{128};
 
-    void m_read_data(PhyLayer& phy)
+    void m_read_data(phy_layer& phy)
     {
         bool success_rx = false;
         uint_fast8_t tries = 0;
@@ -146,7 +146,7 @@ private:
                 phy.read(m_buffer_rx, m_params.timeout_millis, is_frame_complete);
                 success_rx = true;
             }
-            catch (const PhyLayerException &e)
+            catch (const phy_layer_exception &e)
             {
                 if (tries++ >= m_params.max_retries)
                 {
@@ -170,24 +170,24 @@ private:
 
         if ((m_buffer_rx[offset+1] & 0xF0) != HDLC_FORMAT)
         {
-            throw LinkLayerException("received invalid frame format");
+            throw link_layer_exception("received invalid frame format");
         }
 
         uint_fast16_t frame_size = ((m_buffer_rx[1+offset] & 0x0F) << 8) | m_buffer_rx[2+offset];
         if (frame_size != m_buffer_rx.size()-2-offset)
         {
-            throw LinkLayerException("received invalid frame format");
+            throw link_layer_exception("received invalid frame format");
         }
 
         if (m_params.client_addr != m_buffer_rx[offset+3])
         {
-            throw LinkLayerException("received invalid address");
+            throw link_layer_exception("received invalid address");
         }
 
         int addr_offset = 4;
         while (addr_offset < frame_size && (m_buffer_rx[offset + addr_offset++] & 0x01) != 0x01);
         //if (!Arrays.equals(params.serverAddress, Arrays.copyOfRange(data, 4, offset))) {
-        //  throw new LinkLayerException(LinkLayerExceptionReason.RECEIVED_INVALID_ADDRESS);
+        //  throw new link_layer_exception(LinkLayerExceptionReason.RECEIVED_INVALID_ADDRESS);
         //}
 
         m_connection.rx_control = m_buffer_rx[offset + addr_offset++];
@@ -207,7 +207,7 @@ private:
         fcs |= m_buffer_rx[offset + addr_offset];
         if (fcs != checksequence_calc(m_buffer_rx, offset+1, addr_offset-1))
         {
-            throw LinkLayerException("received invalid check sequence");
+            throw link_layer_exception("received invalid check sequence");
         }
 
         fcs = m_buffer_rx[m_buffer_rx.size()-2];
@@ -215,12 +215,12 @@ private:
         fcs |= m_buffer_rx[m_buffer_rx.size()-3];
         if (fcs != checksequence_calc(m_buffer_rx, offset+1, m_buffer_rx.size()-4-offset))
         {
-            throw LinkLayerException("received invalid check sequence");
+            throw link_layer_exception("received invalid check sequence");
         }
 
         if ( (m_connection.rx_control & 0x10) != 0x10)
         {
-            throw LinkLayerException("segmentation not supported");
+            throw link_layer_exception("segmentation not supported");
         }
 
         m_connection.rx_control &= 0xEF; //remove p/f bit from control
@@ -241,7 +241,7 @@ private:
 
         if (m_connection.rx_control == FRMR_CONTROL)
         {
-            throw LinkLayerException("frame rejected");
+            throw link_layer_exception("frame rejected");
         }
     }
 
@@ -257,7 +257,7 @@ private:
             m_buffer_tx.push_back(m_params.server_addr >> ((m_params.server_addr_len-i-1)*8)); //TODO
         }
 
-        m_buffer_tx.push_back(m_params.client_addr);
+        m_buffer_tx.push_back(m_params.client_addr.value());
         m_buffer_tx.push_back(control_byte | 0x10); //always final
 
         if (size > 0)
@@ -275,7 +275,7 @@ private:
         }
     }
 
-    std::vector<uint8_t>& m_frame_close()
+    auto m_frame_close() -> std::vector<uint8_t>&
     {
         size_t address_offset = m_params.server_addr_len + 1;
 
@@ -306,7 +306,7 @@ private:
      * bytes are never generated. The bytes for settings the max_info_len parameters are only
      * generated if those are different from the default (128).
      */
-    std::vector<uint8_t>& m_construct_snrm()
+    auto m_construct_snrm() -> std::vector<uint8_t>&
     {
         std::vector<uint8_t> temp_buffer;
 
@@ -355,12 +355,12 @@ private:
 
         if (size < 5 || m_buffer_rx[offset] != 0x81 || m_buffer_rx[offset+1] != 0x80)
         {
-            throw LinkLayerException("received invalid frame format");
+            throw link_layer_exception("received invalid frame format");
         }
 
         if (m_connection.rx_control != UA_CONTROL)
         {
-            throw LinkLayerException("received invalid frame format");
+            throw link_layer_exception("received invalid frame format");
         }
 
         offset += 3;
@@ -390,21 +390,14 @@ private:
 
 };
 
-Hdlc::Hdlc() : m_pimpl{std::make_unique<impl>()}
-{
-
-}
-
-Hdlc::~Hdlc()
-{
-
-}
+hdlc::hdlc() : m_pimpl{std::make_unique<impl>()} {}
+hdlc::~hdlc() = default;
 
 /**
  *
  * @return
  */
-HdlcParams& Hdlc::parameters()
+auto hdlc::parameters() -> hdlc_params&
 {
     return m_pimpl->parameters();
 }
@@ -413,7 +406,7 @@ HdlcParams& Hdlc::parameters()
  *
  * @param phy
  */
-void Hdlc::connect(PhyLayer& phy)
+void hdlc::connect(phy_layer& phy)
 {
     m_pimpl->connect(phy);
 }
@@ -422,7 +415,7 @@ void Hdlc::connect(PhyLayer& phy)
  *
  * @param phy
  */
-void Hdlc::disconnect(PhyLayer& phy)
+void hdlc::disconnect(phy_layer& phy)
 {
     m_pimpl->disconnect(phy);
 }
@@ -432,7 +425,7 @@ void Hdlc::disconnect(PhyLayer& phy)
  * @param phy
  * @param buffer
  */
-void Hdlc::send(PhyLayer& phy, const std::vector<uint8_t> &buffer)
+void hdlc::send(phy_layer& phy, const std::vector<uint8_t> &buffer)
 {
     m_pimpl->send(phy, buffer);
 }
@@ -442,7 +435,7 @@ void Hdlc::send(PhyLayer& phy, const std::vector<uint8_t> &buffer)
  * @param phy
  * @param buffer
  */
-void Hdlc::read(PhyLayer& phy, std::vector<uint8_t> &buffer)
+void hdlc::read(phy_layer& phy, std::vector<uint8_t> &buffer)
 {
     m_pimpl->read(phy, buffer);
 }
@@ -470,7 +463,7 @@ static bool is_frame_complete(const std::vector<uint8_t> &data)
     return true;
 }
 
-static uint16_t checksequence_calc(std::vector<uint8_t> &data, size_t offset, size_t size)
+static auto checksequence_calc(std::vector<uint8_t> &data, size_t offset, size_t size) -> uint16_t
 {
     static const uint16_t table[] =
     {

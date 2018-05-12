@@ -32,32 +32,32 @@
 namespace yadi
 {
 
-class PhyLayerListener
+class phy_layer_listener
 {
 public:
-    virtual ~PhyLayerListener() {}
-    virtual void bytes_sent(const std::vector<uint8_t> &buffer) = 0;
-    virtual void bytes_read(const std::vector<uint8_t> &buffer) = 0;
+    virtual ~phy_layer_listener() {}
+    virtual void bytes_sent(std::vector<uint8_t> const& buffer) = 0;
+    virtual void bytes_read(std::vector<uint8_t> const& buffer) = 0;
 };
 
-typedef bool frame_complete_fptr(const std::vector<uint8_t> &data);
+typedef bool frame_complete_fptr(std::vector<uint8_t> const& data);
 
-class PhyLayer
+class phy_layer
 {
 public:
-    virtual ~PhyLayer(){};
-    virtual void send(const std::vector<uint8_t> &buffer) = 0;
+    virtual ~phy_layer() = default;
+    virtual void send(std::vector<uint8_t> const& buffer) = 0;
     virtual void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, frame_complete_fptr *frame_complete) = 0;
-    virtual void add_listener(const std::shared_ptr<PhyLayerListener>& listener) = 0;
+    virtual void add_listener(const std::shared_ptr<phy_layer_listener>& listener) = 0;
 };
 
-class PhyLayerException : public std::exception
+class phy_layer_exception : public std::exception
 {
 public:
-    explicit PhyLayerException(const std::string &str) : m_what{str} {}
-    PhyLayerException (const PhyLayerException& other) : m_what{other.m_what} {}
-    virtual ~PhyLayerException() throw() {}
-    const PhyLayerException& operator=(PhyLayerException) = delete; //disable copy constructor
+    explicit phy_layer_exception(std::string const& str) : m_what{str} {}
+    phy_layer_exception (const phy_layer_exception& other) : m_what{other.m_what} {}
+    virtual ~phy_layer_exception() throw() {}
+    phy_layer_exception const& operator=(phy_layer_exception) = delete; //disable copy constructor
     virtual const char* what () const throw ()
     {
         return m_what.c_str();

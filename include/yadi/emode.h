@@ -7,10 +7,10 @@
 
 namespace yadi
 {
-    class Emode
+    class emode
     {
         public:
-            static void connect(PhyLayer &phy);
+            static void connect(phy_layer &phy);
     };
 }
 

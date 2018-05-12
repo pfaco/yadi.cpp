@@ -28,37 +28,37 @@
 namespace yadi
 {
 
-enum class SerialParity
+enum class parity
 {
     NONE,
     ODD,
     EVEN
 };
 
-enum class SerialDataBits
+enum class data_bits
 {
     _7,
     _8
 };
 
-enum class SerialStopBits
+enum class stop_bits
 {
     _1,
     _1_point_5,
     _2
 };
 
-class Serial : public PhyLayer
+class serial : public phy_layer
 {
 public:
     static std::vector<std::string> port_list();
 
-    explicit Serial(const std::string &port_name);
-    ~Serial();
+    explicit serial(const std::string &port_name);
+    ~serial();
     void send(const std::vector<uint8_t> &buffer) override;
     void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, frame_complete_fptr *frame_complete) override;
-    void add_listener(const std::shared_ptr<PhyLayerListener> &listener) override;
-    void set_params(unsigned baud, SerialParity parity, SerialDataBits databits, SerialStopBits stopbits);
+    void add_listener(const std::shared_ptr<phy_layer_listener> &listener) override;
+    void set_params(unsigned baud, parity parity, data_bits databits, stop_bits stopbits);
 
 private:
     class impl;
