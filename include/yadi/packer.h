@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <vector>
-#include <yadi/parser.h>
+#include <yadi/dlms_type.h>
 
 namespace yadi
 {

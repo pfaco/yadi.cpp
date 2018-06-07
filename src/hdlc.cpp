@@ -179,7 +179,7 @@ private:
             throw link_layer_exception("received invalid frame format");
         }
 
-        if (m_params.client_addr != m_buffer_rx[offset+3])
+        if (m_params.client_addr.value() != m_buffer_rx[offset+3])
         {
             throw link_layer_exception("received invalid address");
         }
@@ -252,9 +252,9 @@ private:
         m_buffer_tx.push_back(HDLC_FORMAT);
         m_buffer_tx.push_back(0); //size
 
-        for (size_t i = 0; i < m_params.server_addr_len; ++i)
+        for (size_t i = 0; i < m_params.server_addr.size(); ++i)
         {
-            m_buffer_tx.push_back(m_params.server_addr >> ((m_params.server_addr_len-i-1)*8)); //TODO
+            m_buffer_tx.push_back(m_params.server_addr.value() >> ((m_params.server_addr.size()-i-1)*8)); //TODO
         }
 
         m_buffer_tx.push_back(m_params.client_addr.value());
@@ -277,7 +277,7 @@ private:
 
     auto m_frame_close() -> std::vector<uint8_t>&
     {
-        size_t address_offset = m_params.server_addr_len + 1;
+        size_t address_offset = m_params.server_addr.size() + 1;
 
         m_buffer_tx.push_back(0); //fcs
         m_buffer_tx.push_back(0); //fcs

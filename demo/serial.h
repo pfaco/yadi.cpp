@@ -23,42 +23,29 @@
 #define SERIAL_H_
 
 #include <yadi/phy_layer.h>
+#include <ssp/serial.h>
 #include <memory.h>
 
-namespace yadi
+namespace ssp
 {
 
-enum class parity
-{
-    NONE,
-    ODD,
-    EVEN
-};
-
-enum class data_bits
-{
-    _7,
-    _8
-};
-
-enum class stop_bits
-{
-    _1,
-    _1_point_5,
-    _2
-};
-
-class serial : public phy_layer
+class serial_listener
 {
 public:
-    static std::vector<std::string> port_list();
+    virtual ~serial_listener() {}
+    virtual void bytes_sent(std::vector<uint8_t> const& buffer) = 0;
+    virtual void bytes_read(std::vector<uint8_t> const& buffer) = 0;
+};
 
+class serial : public yadi::phy_layer
+{
+public:
     explicit serial(const std::string &port_name);
     ~serial();
     void send(const std::vector<uint8_t> &buffer) override;
-    void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, frame_complete_fptr *frame_complete) override;
-    void add_listener(const std::shared_ptr<phy_layer_listener> &listener) override;
-    void set_params(unsigned baud, parity parity, data_bits databits, stop_bits stopbits);
+    void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, yadi::frame_complete_fptr *frame_complete) override;
+    void add_listener(const std::weak_ptr<serial_listener> &listener);
+    auto port() -> serial_port&;
 
 private:
     class impl;

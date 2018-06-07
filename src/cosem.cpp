@@ -21,7 +21,7 @@
 
 #include <yadi/cosem.h>
 #include <yadi/security.h>
-#include <yadi/parser.h>
+#include <yadi/dlms_type.h>
 #include <yadi/packer.h>
 
 namespace yadi
@@ -62,7 +62,6 @@ enum CosemConstants : unsigned int
     XDLMS_NO_CIPHERING_INITIATE_RESPONSE = 8,
     XDLMS_NO_CIPHERING_GET_REQUEST = 192,
     XDLMS_NO_CIPHERING_SET_REQUEST = 193,
-    XDLMS_NO_CIPHERING_EVENT_NOTIFICATION_REQUEST = 194,
     XDLMS_NO_CIPHERING_ACTION_REQUEST = 195,
     XDLMS_NO_CIPHERING_GET_RESPONSE = 196,
     XDLMS_NO_CIPHERING_SET_RESPONSE = 197,
@@ -72,7 +71,6 @@ enum CosemConstants : unsigned int
     XDLMS_GLOBAL_CIPHERING_INITIATE_RESPONSE = 40,
     XDLMS_GLOBAL_CIPHERING_GET_REQUEST = 200,
     XDLMS_GLOBAL_CIPHERING_SET_REQUEST = 201,
-    XDLMS_GLOBAL_CIPHERING_EVENT_NOTIFICATION_REQUEST = 202,
     XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST = 203,
     XDLMS_GLOBAL_CIPHERING_GET_RESPONSE = 204,
     XDLMS_GLOBAL_CIPHERING_SET_RESPONSE = 205,
@@ -148,7 +146,7 @@ public:
                 return aarq_frame();
             case ConnectionState::CONNECTED: {
                 att_descriptor att(CosemClasses::ASSOCIATION_LN, 1, {0, 0, 40, 0, 0, 255});
-                return action_request(att, parser::pack_octet_string(Security::process_challenger(m_params)));
+                return action_request(att, dlms_type::from_bytes(Security::process_challenger(m_params)));
             }
             default:
                 throw cosem_exception("invalid state");
@@ -185,25 +183,25 @@ public:
         if (m_params.security_type != SecurityType::NONE) {
             unsigned size = 0;
             m_buffer_tx.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
-            parser::insert_size(m_buffer_tx, size);
+            dlms_type::write_size(m_buffer_tx, size);
         }
         m_buffer_tx.push_back(XDLMS_NO_CIPHERING_ACTION_REQUEST);
         m_buffer_tx.push_back(1);
         m_buffer_tx.push_back((uint8_t)(XDLMS_HIGH_PRIORITY | XDLMS_SERVICE_CONFIRMED | XDLMS_INVOKE_ID));
-        m_buffer_tx.push_back((uint8_t)(att.class_id() >> 8));
+        m_buffer_tx.push_back((uint8_t)(att.class_id() >> 8u));
         m_buffer_tx.push_back((uint8_t) att.class_id());
         m_buffer_tx.insert(m_buffer_tx.end(), att.obis().begin(), att.obis().end());
         m_buffer_tx.push_back(att.index());
-        m_buffer_tx.push_back(data.size() == 0 ? 0 : 1);
+        m_buffer_tx.push_back(data.empty() ? 0 : 1);
         m_buffer_tx.insert(m_buffer_tx.end(), data.begin(), data.end());
         return m_buffer_tx;
     }
 
-    auto pack_frame(uint8_t cmd_tag, std::vector<uint8_t> const& payload) -> std::vector<uint8_t>&{
+    auto pack_frame(uint8_t cmd_tag, std::vector<uint8_t> const& payload) -> std::vector<uint8_t>& {
         if (m_params.security_type != SecurityType::NONE) {
             unsigned size = 0;
             m_buffer_tx.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
-            parser::insert_size(m_buffer_tx, size);
+            dlms_type::write_size(m_buffer_tx, size);
         }
     }
 
@@ -329,7 +327,7 @@ auto cosem::connection_request() -> const std::vector<uint8_t>&
     return m_pimpl->connection_request();
 }
 
-bool cosem::parse_connection_response()
+auto cosem::parse_connection_response() -> bool
 {
     return m_pimpl->parse_connection_response();
 }
