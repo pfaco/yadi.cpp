@@ -12,7 +12,7 @@ set(yadi_SRC
     src/dlms.cpp
     src/emode.cpp
     src/hdlc.cpp
-    src/dlms_type.cpp
+    src/data_type.cpp
     src/wrapper.cpp
     src/security.cpp)
 

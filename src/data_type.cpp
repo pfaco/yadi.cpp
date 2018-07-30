@@ -1,9 +1,9 @@
 
-#include <yadi/dlms_type.h>
+#include <yadi/data_type.h>
 
-namespace yadi
+namespace dlms
 {
-    void dlms_type::write_size(std::vector<uint8_t> &buffer, unsigned size)
+    void write_size(std::vector<uint8_t> &buffer, unsigned size)
     {
         if (size <= 0x80) {
             buffer.push_back(static_cast<uint8_t>(size));
@@ -33,37 +33,37 @@ namespace yadi
     {
         std::vector<uint8_t> buffer;
         buffer.push_back(tag);
-        dlms_type::write_size(buffer, value.size());
+        write_size(buffer, value.size());
         buffer.insert(buffer.end(), value.begin(), value.end());
         return buffer;
     }
 
-    auto dlms_type::from_string(std::string const& str, type_tags tag) -> std::vector<uint8_t>
+    auto from_string(std::string const& str, data_type tag) -> std::vector<uint8_t>
     {
         switch(tag) {
-            case type_tags::OCTET_STRING:
-            case type_tags::STRING:
+            case data_type::OCTET_STRING:
+            case data_type::STRING:
                 return pack_sized_type(static_cast<uint8_t>(tag), str);
         }
     }
 
-    auto dlms_type::from_bytes(std::vector<uint8_t> const& data, type_tags tag) -> std::vector<uint8_t>
+    auto from_bytes(std::vector<uint8_t> const& data, data_type tag) -> std::vector<uint8_t>
     {
         switch(tag) {
-            case type_tags::OCTET_STRING:
-            case type_tags::STRING:
+            case data_type::OCTET_STRING:
+            case data_type::STRING:
                 return pack_sized_type(static_cast<uint8_t>(tag), data);
         }
     }
 
-    auto dlms_type::to_string(std::vector<uint8_t> const& buffer) -> std::string
+    auto to_string(std::vector<uint8_t> const& buffer) -> std::string
     {
         std::string retval;
         //TODO
         return retval;
     }
 
-    auto dlms_type::to_bytes(std::vector<uint8_t> const& buffer) -> std::vector<uint8_t>
+    auto to_bytes(std::vector<uint8_t> const& buffer) -> std::vector<uint8_t>
     {
 
     }

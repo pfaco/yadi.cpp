@@ -29,32 +29,15 @@
 #include <sstream>
 #include <string>
 
-namespace yadi
+namespace dlms
 {
 
-typedef bool frame_complete_fptr(std::vector<uint8_t> const& data);
-
-class phy_layer
+class PhyLayer
 {
 public:
-    virtual ~phy_layer() = default;
+    virtual ~PhyLayer() = default;
     virtual void send(std::vector<uint8_t> const& buffer) = 0;
-    virtual void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, frame_complete_fptr *frame_complete) = 0;
-};
-
-class phy_layer_exception : public std::exception
-{
-public:
-    explicit phy_layer_exception (std::string const& str) : m_what{str} {}
-    phy_layer_exception (phy_layer_exception const& other) : m_what{other.m_what} {}
-    virtual ~phy_layer_exception() throw() {}
-    phy_layer_exception const& operator=(phy_layer_exception) = delete; //disable copy constructor
-    virtual const char* what () const throw () {
-        return m_what.c_str();
-    }
-
-private:
-    std::string m_what;
+    virtual auto read() -> std::vector<uint8_t> = 0;
 };
 
 }

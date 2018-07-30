@@ -23,10 +23,11 @@
 #define HDLC_H_
 
 #include <yadi/link_layer.h>
+#include <yadi/phy_layer.h>
 #include <sstream>
 
 
-namespace yadi
+namespace dlms
 {
 
 class client_addr
@@ -63,7 +64,7 @@ private:
 /**
  * This class holds the parameters of a hdlc object
  */
-struct hdlc_params
+struct HdlcParameters
 {
     /**
      * The timeout for a response, in milliseconds
@@ -99,20 +100,21 @@ struct hdlc_params
 /**
  * HDLC class
  */
-class hdlc : public link_layer
+class Hdlc : public LinkLayer
 {
 public:
-    hdlc();
-    ~hdlc();
-    auto parameters() -> hdlc_params& ;
-    void connect(phy_layer& phy) override;
-    void disconnect(phy_layer& phy) override;
-    void send(phy_layer& phy, const std::vector<uint8_t>& buffer) override;
-    void read(phy_layer& phy, std::vector<uint8_t>& buffer) override;
+    Hdlc(PhyLayer& phy);
+    ~Hdlc();
+    auto parameters() -> HdlcParameters& ;
+    void set_phy_layer(PhyLayer &phy);
+    bool connect();
+    bool disconnect();
+    void send(std::vector<uint8_t> const& buffer) override;
+    auto read() -> std::vector<uint8_t> override;
 
 private:
     class impl;
-    std::unique_ptr<impl> m_pimpl;
+    std::unique_ptr<impl> pimpl_;
 };
 
 }

@@ -21,10 +21,10 @@
 
 #include <yadi/cosem.h>
 #include <yadi/security.h>
-#include <yadi/dlms_type.h>
+#include <yadi/data_type.h>
 #include <yadi/packer.h>
 
-namespace yadi
+namespace dlms
 {
 
 /**
@@ -32,7 +32,9 @@ namespace yadi
  */
 enum class ConnectionState
 {
-    DISCONNECTED, CONNECTED, AUTHENTICATED
+    DISCONNECTED,
+    CONNECTED,
+    AUTHENTICATED
 };
 
 /**
@@ -112,54 +114,82 @@ enum ConformanceBlock : unsigned int
 struct CosemConnection
 {
     ConnectionState state = ConnectionState::DISCONNECTED;
-
-    void reset()
-    {
+    void reset() {
         state = ConnectionState::DISCONNECTED;
     }
 };
 
-static const std::vector<uint8_t> empty_vector{0};
-
 /**
  * Implementation of COSEM application layer
  */
-class cosem::impl
+class Cosem::impl
 {
+    LinkLayer &link_;
+    CosemParameters params_;
+    CosemConnection connection_;
+    std::vector<uint8_t> buffer_rx_;
+    std::vector<uint8_t> buffer_tx_;
+
 public:
-    auto parameters() -> cosem_params&
-    {
-        return m_params;
+    explicit impl(LinkLayer &link) : link_{link} {}
+
+    auto parameters() -> CosemParameters& {
+        return params_;
     }
 
-    auto rx_buffer() -> std::vector<uint8_t>&
-    {
-        m_buffer_rx.clear();
-        return m_buffer_rx;
+    auto connect() -> AssociationResult {
+        return AssociationResult::ACCEPTED;
     }
 
-    auto connection_request() -> const std::vector<uint8_t>&
-    {
-        switch (m_connection.state) {
+    auto disconnect() {
+
+    }
+
+    auto get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+        return std::make_pair(DataAccessResult::SUCCESS,{});
+    }
+
+    auto set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+        return std::make_pair(DataAccessResult::SUCCESS,{});
+    }
+
+    auto act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+        if (params_.security != SecurityContext::NONE) {
+            unsigned size = 0;
+            buffer_tx_.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
+            write_size(buffer_tx_, size);
+        }
+        buffer_tx_.push_back(XDLMS_NO_CIPHERING_ACTION_REQUEST);
+        buffer_tx_.push_back(1);
+        buffer_tx_.push_back((uint8_t)(XDLMS_HIGH_PRIORITY | XDLMS_SERVICE_CONFIRMED | XDLMS_INVOKE_ID));
+        buffer_tx_.push_back(static_cast<uint16_t>(class_id) >> 8u);
+        buffer_tx_.push_back((uint8_t) class_id);
+        buffer_tx_.insert(buffer_tx_.end(), logical_name.begin(), logical_name.end());
+        buffer_tx_.push_back(index);
+        buffer_tx_.push_back(data.empty() ? 0u : 1u);
+        buffer_tx_.insert(buffer_tx_.end(), data.begin(), data.end());
+        return std::make_pair(DataAccessResult::SUCCESS,{});
+    }
+/*
+    auto connection_request() -> const std::vector<uint8_t>& {
+        switch (connection_.state) {
             case ConnectionState::DISCONNECTED:
-                m_connection.reset();
+                connection_.reset();
                 return aarq_frame();
             case ConnectionState::CONNECTED: {
-                att_descriptor att(CosemClasses::ASSOCIATION_LN, 1, {0, 0, 40, 0, 0, 255});
-                return action_request(att, dlms_type::from_bytes(Security::process_challenger(m_params)));
+                return act_request(ClassID::ASSOCIATION_LN, {"0.0.40.0.0.255"}, 1, from_bytes(Security::process_challenger(params_)));
             }
             default:
-                throw cosem_exception("invalid state");
+                throw std::logic_error("invalid state");
         }
     }
-
-    bool parse_connection_response()
-    {
-        switch (m_connection.state) {
+*/
+    bool parse_connection_response() {
+        switch (connection_.state) {
             case ConnectionState::DISCONNECTED:
                 parse_aare_frame();
-                m_connection.state = ConnectionState::CONNECTED;
-                return m_params.authentication_type < AuthenticationType ::HLS_SHA1;
+                connection_.state = ConnectionState::CONNECTED;
+                return params_.authentication < AuthenticationMechanism ::HLS_SHA1;
             case ConnectionState::CONNECTED:
                 break;
             case ConnectionState::AUTHENTICATED:
@@ -168,49 +198,15 @@ public:
         return true;
     }
 
-    auto set_request(att_descriptor const& att, std::vector<uint8_t> const& data = empty_vector) -> std::vector<uint8_t>&
-    {
-        return m_buffer_tx;
-    }
-
-    auto get_request(att_descriptor const& att, std::vector<uint8_t> const& data = empty_vector) -> std::vector<uint8_t>&
-    {
-        return m_buffer_tx;
-    }
-
-    auto action_request(att_descriptor const& att, std::vector<uint8_t> const& data = empty_vector) -> std::vector<uint8_t>&
-    {
-        if (m_params.security_type != SecurityType::NONE) {
-            unsigned size = 0;
-            m_buffer_tx.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
-            dlms_type::write_size(m_buffer_tx, size);
-        }
-        m_buffer_tx.push_back(XDLMS_NO_CIPHERING_ACTION_REQUEST);
-        m_buffer_tx.push_back(1);
-        m_buffer_tx.push_back((uint8_t)(XDLMS_HIGH_PRIORITY | XDLMS_SERVICE_CONFIRMED | XDLMS_INVOKE_ID));
-        m_buffer_tx.push_back((uint8_t)(att.class_id() >> 8u));
-        m_buffer_tx.push_back((uint8_t) att.class_id());
-        m_buffer_tx.insert(m_buffer_tx.end(), att.obis().begin(), att.obis().end());
-        m_buffer_tx.push_back(att.index());
-        m_buffer_tx.push_back(data.empty() ? 0 : 1);
-        m_buffer_tx.insert(m_buffer_tx.end(), data.begin(), data.end());
-        return m_buffer_tx;
-    }
-
     auto pack_frame(uint8_t cmd_tag, std::vector<uint8_t> const& payload) -> std::vector<uint8_t>& {
-        if (m_params.security_type != SecurityType::NONE) {
+        if (params_.security != SecurityContext::NONE) {
             unsigned size = 0;
-            m_buffer_tx.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
-            dlms_type::write_size(m_buffer_tx, size);
+            buffer_tx_.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
+            write_size(buffer_tx_, size);
         }
     }
 
 private:
-    cosem_params m_params;
-    CosemConnection m_connection;
-    std::vector<uint8_t> m_buffer_rx{128};
-    std::vector<uint8_t> m_buffer_tx{128};
-
     /**
      * Generates an AARQ frame, based on the current parameters.
      * The bytes are added to the buffer_tx member variable.
@@ -218,43 +214,43 @@ private:
      */
     auto aarq_frame() -> std::vector<uint8_t>&
     {
-        m_buffer_tx.clear();
-        m_buffer_tx.push_back(BER_CONSTRUCTED | BER_CLASS_APPLICATION);
+        buffer_tx_.clear();
+        buffer_tx_.push_back(BER_CONSTRUCTED | BER_CLASS_APPLICATION);
 
-        if (m_params.authentication_type == AuthenticationType::PUBLIC) {
-            m_buffer_tx.insert(m_buffer_tx.end(), {0x80, 0x02, 0x07, 0x80});
+        if (params_.authentication == AuthenticationMechanism::LOWEST) {
+            buffer_tx_.insert(buffer_tx_.end(), {0x80, 0x02, 0x07, 0x80});
         }
 
         // application context name
         update_buffer(7, BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_APPLICATION_CONTEXT_NAME, BER_OBJECT_IDENTIFIER);
-        if (m_params.security_type == SecurityType::NONE) {
-            m_buffer_tx.insert(m_buffer_tx.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x01}); //LNAME_NO_CIPHERING
+        if (params_.security == SecurityContext::NONE) {
+            buffer_tx_.insert(buffer_tx_.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x01}); //LNAME_NO_CIPHERING
         } else {
-            m_buffer_tx.insert(m_buffer_tx.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x03}); //LNAME_WITH_CIPHERING
+            buffer_tx_.insert(buffer_tx_.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x03}); //LNAME_WITH_CIPHERING
         }
 
         // system title
-        if (m_params.security_type != SecurityType::NONE || m_params.authentication_type == AuthenticationType::HLS_GCM) {
-            update_buffer(m_params.system_title.size(), BER_BASE | BER_OBJECT_IDENTIFIER, BER_OCTET_STRING);
-            m_buffer_tx.insert(m_buffer_tx.end(), m_params.system_title.begin(), m_params.system_title.end());
+        if (params_.security != SecurityContext::NONE || params_.authentication == AuthenticationMechanism::HLS_GMAC) {
+            update_buffer(params_.system_title.size(), BER_BASE | BER_OBJECT_IDENTIFIER, BER_OCTET_STRING);
+            buffer_tx_.insert(buffer_tx_.end(), params_.system_title.begin(), params_.system_title.end());
         }
 
         // sender ACSE requirements
-        if (m_params.authentication_type != AuthenticationType::PUBLIC) {
-            m_buffer_tx.push_back(BER_CLASS_CONTEXT | AARQ_SENDER_ACSE_REQUIREMENTS);
-            m_buffer_tx.push_back(2);
-            m_buffer_tx.push_back(BER_BIT_STRING | BER_OCTET_STRING);
-            m_buffer_tx.push_back(0x80);
-            m_buffer_tx.push_back(BER_CLASS_CONTEXT | AARQ_MECHANISM_NAME);
-            m_buffer_tx.push_back(7);
-            m_buffer_tx.insert(m_buffer_tx.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x02});
-            m_buffer_tx.push_back(m_params.authentication_type);
-            if (m_params.authentication_type == AuthenticationType::LLS) {
-                update_buffer(m_params.secret.size(), BER_BASE | AARQ_CALLING_AUTHENTICATION_VALUE, BER_CLASS_CONTEXT);
-                m_buffer_tx.insert(m_buffer_tx.end(), m_params.secret.begin(), m_params.secret.end());
+        if (params_.authentication != AuthenticationMechanism::LOWEST) {
+            buffer_tx_.push_back(BER_CLASS_CONTEXT | AARQ_SENDER_ACSE_REQUIREMENTS);
+            buffer_tx_.push_back(2);
+            buffer_tx_.push_back(BER_BIT_STRING | BER_OCTET_STRING);
+            buffer_tx_.push_back(0x80);
+            buffer_tx_.push_back(BER_CLASS_CONTEXT | AARQ_MECHANISM_NAME);
+            buffer_tx_.push_back(7);
+            buffer_tx_.insert(buffer_tx_.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x02});
+            buffer_tx_.push_back(static_cast<uint8_t>(params_.authentication));
+            if (params_.authentication == AuthenticationMechanism::LLS) {
+                update_buffer(params_.secret.size(), BER_BASE | AARQ_CALLING_AUTHENTICATION_VALUE, BER_CLASS_CONTEXT);
+                buffer_tx_.insert(buffer_tx_.end(), params_.secret.begin(), params_.secret.end());
             } else {
-                update_buffer(m_params.challenger_size, BER_BASE| AARQ_CALLING_AUTHENTICATION_VALUE, BER_CLASS_CONTEXT);
-                Security::generate_challenger(m_params.challenger_size, m_buffer_tx);
+                update_buffer(params_.challenger_size, BER_BASE| AARQ_CALLING_AUTHENTICATION_VALUE, BER_CLASS_CONTEXT);
+                Security::generate_challenger(params_.challenger_size, buffer_tx_);
             }
         }
 
@@ -270,29 +266,29 @@ private:
 
         // Initiate request
         update_buffer(11, BER_CONSTRUCTED | AARQ_USER_INFORMATION, BER_OCTET_STRING);
-        m_buffer_tx.push_back(XDLMS_NO_CIPHERING_INITIATE_REQUEST);
-        m_buffer_tx.push_back(0); //Dedicated key
-        m_buffer_tx.push_back(0); //Response-allowed
-        m_buffer_tx.push_back(0); //Proposed quality of service
-        m_buffer_tx.push_back(XDLMS_VERSION);
-        m_buffer_tx.push_back(ConformanceBlock::TAG);
-        m_buffer_tx.push_back(4); //conformance block size
-        m_buffer_tx.push_back((uint8_t)conformance_block);
-        m_buffer_tx.push_back((uint8_t)(conformance_block >> 8u));
-        m_buffer_tx.push_back((uint8_t)(conformance_block >> 16u));
-        m_buffer_tx.push_back((uint8_t)(conformance_block >> 24u));
+        buffer_tx_.push_back(XDLMS_NO_CIPHERING_INITIATE_REQUEST);
+        buffer_tx_.push_back(0); //Dedicated key
+        buffer_tx_.push_back(0); //Response-allowed
+        buffer_tx_.push_back(0); //Proposed quality of service
+        buffer_tx_.push_back(XDLMS_VERSION);
+        buffer_tx_.push_back(ConformanceBlock::TAG);
+        buffer_tx_.push_back(4); //conformance block size
+        buffer_tx_.push_back((uint8_t)conformance_block);
+        buffer_tx_.push_back((uint8_t)(conformance_block >> 8u));
+        buffer_tx_.push_back((uint8_t)(conformance_block >> 16u));
+        buffer_tx_.push_back((uint8_t)(conformance_block >> 24u));
 
         // Add correct frame size
-        m_buffer_tx[1] = (uint8_t)(m_buffer_tx.size() - 2);
+        buffer_tx_[1] = (uint8_t)(buffer_tx_.size() - 2);
 
-        return m_buffer_tx;
+        return buffer_tx_;
     }
 
     void update_buffer(unsigned size, uint8_t tag1, uint8_t tag2) {
-        m_buffer_tx.push_back(tag1);
-        m_buffer_tx.push_back((uint8_t)(size + 2));
-        m_buffer_tx.push_back(tag2);
-        m_buffer_tx.push_back((uint8_t)size);
+        buffer_tx_.push_back(tag1);
+        buffer_tx_.push_back((uint8_t)(size + 2));
+        buffer_tx_.push_back(tag2);
+        buffer_tx_.push_back((uint8_t)size);
     }
 
     /**
@@ -301,35 +297,40 @@ private:
      * @return NONE
      */
     void parse_aare_frame() {
-        if (m_buffer_rx.size() < 4 || (m_buffer_rx[1] != (m_buffer_rx.size() - 2)) ) {
-            throw cosem_exception("Malformed AARE frame");
+        if (buffer_rx_.size() < 4 || (buffer_rx_[1] != (buffer_rx_.size() - 2)) ) {
+            throw std::runtime_error("Malformed AARE frame");
         }
-        if (m_buffer_rx[0] != AARE_APPLICATION_1 || (m_buffer_rx[2] != (BER_CONSTRUCTED | AARE_APP_CONTEXT_NAME))) {
-            throw cosem_exception("Malformed AARE frame");
+        if (buffer_rx_[0] != AARE_APPLICATION_1 || (buffer_rx_[2] != (BER_CONSTRUCTED | AARE_APP_CONTEXT_NAME))) {
+            throw std::runtime_error("Malformed AARE frame");
         }
     }
 };
 
-cosem::cosem() : m_pimpl{std::make_unique<impl>()} {};
-cosem::~cosem() = default;
+Cosem::Cosem(LinkLayer &link) : pimpl_{std::make_unique<impl>(link)} {};
+Cosem::~Cosem() = default;
 
-auto cosem::parameters() -> cosem_params&
-{
-    return m_pimpl->parameters();
+auto Cosem::parameters() -> CosemParameters& {
+    return pimpl_->parameters();
 }
 
-auto cosem::rx_buffer() -> std::vector<uint8_t>&{
-    return m_pimpl->rx_buffer();
+auto Cosem::connect() -> AssociationResult {
+   return pimpl_->connect();
 }
 
-auto cosem::connection_request() -> const std::vector<uint8_t>&
-{
-    return m_pimpl->connection_request();
+auto Cosem::disconnect() {
+    pimpl_->disconnect();
 }
 
-auto cosem::parse_connection_response() -> bool
-{
-    return m_pimpl->parse_connection_response();
+auto Cosem::get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+    return pimpl_->act_request(class_id, logical_name, index, data);
+}
+
+auto Cosem::set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+    return pimpl_->act_request(class_id, logical_name, index, data);
+}
+
+auto Cosem::act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+    return pimpl_->act_request(class_id, logical_name, index, data);
 }
 
 }

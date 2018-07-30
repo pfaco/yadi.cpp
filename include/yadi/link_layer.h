@@ -24,35 +24,15 @@
 
 #include <cstdint>
 #include <vector>
-#include <yadi/phy_layer.h>
 
+namespace dlms {
 
-namespace yadi {
-
-class link_layer
+class LinkLayer
 {
 public:
-    virtual ~link_layer(){};
-    virtual void connect(phy_layer &phy) = 0;
-    virtual void disconnect(phy_layer &phy) = 0;
-    virtual void send(phy_layer &phy, const std::vector<uint8_t> &buffer) = 0;
-    virtual void read(phy_layer &phy, std::vector<uint8_t> &buffer) = 0;
-};
-
-class link_layer_exception : public std::exception
-{
-public:
-    explicit link_layer_exception(const std::string &str) : m_what{str} {}
-    link_layer_exception (const link_layer_exception& other) : m_what(other.m_what) {}
-    virtual ~link_layer_exception() throw() {}
-    const link_layer_exception& operator=(link_layer_exception) = delete; //disable copy constructors
-    virtual const char* what () const throw ()
-    {
-        return m_what.c_str();
-    }
-
-private:
-    std::string m_what;
+    virtual ~LinkLayer(){};
+    virtual void send(std::vector<uint8_t> const& buffer) = 0;
+    virtual auto read() -> std::vector<uint8_t> = 0;
 };
 
 }

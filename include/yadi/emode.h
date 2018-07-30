@@ -5,12 +5,12 @@
 
 #include <yadi/phy_layer.h>
 
-namespace yadi
+namespace dlms
 {
     class emode
     {
         public:
-            static void connect(phy_layer &phy);
+            static bool connect(PhyLayer &phy);
     };
 }
 

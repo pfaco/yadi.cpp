@@ -37,13 +37,13 @@ public:
     virtual void bytes_read(std::vector<uint8_t> const& buffer) = 0;
 };
 
-class serial : public yadi::phy_layer
+class serial : public dlms::PhyLayer
 {
 public:
     explicit serial(const std::string &port_name);
     ~serial();
     void send(const std::vector<uint8_t> &buffer) override;
-    void read(std::vector<uint8_t> &buffer, uint16_t timeout_millis, yadi::frame_complete_fptr *frame_complete) override;
+    auto read() -> std::vector<uint8_t> override;
     void add_listener(const std::weak_ptr<serial_listener> &listener);
     auto port() -> serial_port&;
 

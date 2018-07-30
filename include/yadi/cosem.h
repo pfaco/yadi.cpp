@@ -26,37 +26,65 @@
 #include <cstdint>
 #include <memory>
 #include <algorithm>
+#include <utility>
+#include <yadi/link_layer.h>
 
-namespace yadi
+namespace dlms
 {
 
-enum AuthenticationType
-{
-    PUBLIC = 0, LLS = 1, HLS_SHA1 = 2, HLS_SHA256 = 3, HLS_MD5 = 4, HLS_GCM = 5,
+enum class AuthenticationMechanism : uint8_t  {
+    LOWEST = 0,
+    LLS = 1,
+    HLS = 2,
+    HLS_MD5 = 3,
+    HLS_SHA1 = 4,
+    HLS_GMAC = 5,
+    HLS_SHA256 = 6,
+    HLS_ECDSA = 7
 };
 
-enum class SecurityType
-{
-    NONE, AUTHENTICATION, ENCRYPTION, AUTHENTICATION_ENCRYPTION
+enum class SecurityContext {
+    NONE,
+    AUTHENTICATION,
+    ENCRYPTION,
+    AUTHENTICATION_ENCRYPTION
 };
 
-enum class ReferenceType
-{
-    LOGICAL_NAME, /* TODO SHORT_NAME */
+enum class AssociationResult : uint8_t {
+    ACCEPTED = 0,
+    REJECTED_PERMANENT = 1,
+    REJECTED_TRANSIENT = 2
 };
 
-enum CosemClasses {
+enum class DataAccessResult : uint8_t {
+    SUCCESS = 0,
+    HARDWARE_FAULT = 1,
+    TEMPORARY_FAILURE = 2,
+    READ_WRITE_DENIED = 3,
+    OBJECT_UNDEFINED = 4,
+    OBJECT_CLASS_INCONSISTENT = 9,
+    OBJECT_UNAVAILABLE = 11,
+    TYPE_UNMATCHED = 12,
+    SCOPE_OF_ACCESS_VIOLATED = 13,
+    DATA_BLOCK_UNAVAILABLE = 14,
+    LONG_GET_ABORTED = 15,
+    NO_LONG_GET_IN_PROGRESS = 16,
+    LONG_SET_ABORTED = 17,
+    NO_LONG_SET_IN_PROGRESS = 18,
+    DATA_BLOCK_NUMBER_INVALID = 19,
+    OTHER_REASON = 250
+};
+
+enum class ClassID : uint16_t {
     DATA = 1,
     REGISTER = 3,
     CLOCK = 8,
     ASSOCIATION_LN = 15,
 };
 
-struct cosem_params
-{
-    AuthenticationType authentication_type = AuthenticationType::PUBLIC;
-    SecurityType security_type = SecurityType::NONE;
-    ReferenceType reference_type = ReferenceType::LOGICAL_NAME;
+struct CosemParameters {
+    AuthenticationMechanism authentication = AuthenticationMechanism::LOWEST;
+    SecurityContext security = SecurityContext::NONE;
     std::array<uint8_t,8> system_title{0};
     std::array<uint8_t,8> secret{0};
     std::array<uint8_t,16> ak{0};
@@ -64,79 +92,32 @@ struct cosem_params
     unsigned challenger_size = 8;
 };
 
-class att_descriptor
-{
+class LogicalName {
 public:
-    att_descriptor(uint16_t class_id, uint8_t index, const std::initializer_list<uint8_t> &obis)
-            : m_class_id{class_id}, m_index{index}, m_obis{0}
-    {
-        if (obis.size() != m_obis.size()) {
-            throw std::invalid_argument("bad obis size");
-        }
-        std::copy_n(obis.begin(), m_obis.size(), m_obis.begin());
-    }
-
-    auto class_id() const -> uint16_t {
-        return m_class_id;
-    }
-
-    auto obis() const -> std::array<uint8_t,6> {
-        return m_obis;
-    }
-
-    auto index() const -> uint8_t {
-        return m_index;
-    }
-
-    auto response_data() const -> std::vector<uint8_t> {
-        return m_response_data;
-    }
-
-    void get_request_data(std::vector<uint8_t> &buffer) const {
-        buffer.insert(buffer.end(), m_request_data.begin(), m_request_data.end());
-    }
-
-    void set_request_data(std::vector<uint8_t> data) {
-        m_request_data = std::move(data);
-    }
-
+    LogicalName(std::string const& str);
+    LogicalName(std::initializer_list<uint8_t> const& initializer_list);
+    std::iterator begin();
+    std::iterator end();
 private:
-    const uint16_t m_class_id;
-    const uint8_t m_index;
-    std::array<uint8_t,6> m_obis;
-    std::vector<uint8_t> m_request_data;
-    std::vector<uint8_t> m_response_data;
+    class impl;
+    std::unique_ptr<impl> pimpl_;
 };
 
-class cosem
-{
+class Cosem {
 public:
-    cosem();
-    ~cosem();
-    auto parameters() -> cosem_params&;
-    auto rx_buffer() -> std::vector<uint8_t>&;
-    auto connection_request() -> const std::vector<uint8_t>& ;
-    bool parse_connection_response();
+    Cosem(LinkLayer &link);
+    ~Cosem();
+    void set_link_layer(LinkLayer &link);
+    auto parameters() -> CosemParameters&;
+    auto connect() -> AssociationResult;
+    void disconnect();
+    auto get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
+    auto set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
+    auto act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
 
 private:
     class impl;
-    std::unique_ptr<impl> m_pimpl;
-};
-
-class cosem_exception : public std::exception
-{
-public:
-    explicit cosem_exception(const std::string &str) : m_what{str} {}
-    cosem_exception (const cosem_exception& other) : m_what{other.m_what} {}
-    virtual ~cosem_exception() throw() {}
-    const cosem_exception& operator=(cosem_exception) = delete; //disable copy constructor
-    virtual const char* what () const throw ()
-    {
-        return m_what.c_str();
-    }
-
-private:
-    std::string m_what;
+    std::unique_ptr<impl> pimpl_;
 };
 
 }
