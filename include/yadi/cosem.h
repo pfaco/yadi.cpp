@@ -96,11 +96,27 @@ class LogicalName {
 public:
     LogicalName(std::string const& str);
     LogicalName(std::initializer_list<uint8_t> const& initializer_list);
-    std::iterator begin();
-    std::iterator end();
+    std::iterator begin() const;
+    std::iterator end() const;
 private:
     class impl;
     std::unique_ptr<impl> pimpl_;
+};
+
+struct Request
+{
+    Request(ClassID classId, LogicalName logicalName, uint8_t index_, std::vector<uint8_t> data_ = {}) :
+    class_id{classId}, logical_name{logicalName}, index{index_}, data{data_} {}
+    ClassID const class_id;
+    LogicalName const logical_name;
+    uint8_t const index;
+    std::vector<uint8_t> const data;
+};
+
+struct Response
+{
+    DataAccessResult result;
+    std::vector<uint8_t> data;
 };
 
 class Cosem {
@@ -111,9 +127,9 @@ public:
     auto parameters() -> CosemParameters&;
     auto connect() -> AssociationResult;
     void disconnect();
-    auto get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
-    auto set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
-    auto act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data = {}) -> std::pair<DataAccessResult,std::vector<uint8_t>>;
+    auto get_request(Request const& request) -> Response;
+    auto set_request(Request const& request) -> Response;
+    auto act_request(Request const& request) -> Response;
 
 private:
     class impl;

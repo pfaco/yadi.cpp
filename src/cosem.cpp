@@ -145,15 +145,15 @@ public:
 
     }
 
-    auto get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
-        return std::make_pair(DataAccessResult::SUCCESS,{});
+    auto get_request(Request const& request) -> Response {
+        return {DataAccessResult::SUCCESS,{}};
     }
 
-    auto set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
-        return std::make_pair(DataAccessResult::SUCCESS,{});
+    auto set_request(Request const& reques) -> Response {
+        return {DataAccessResult::SUCCESS,{}};
     }
 
-    auto act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
+    auto act_request(Request const& request) -> Response {
         if (params_.security != SecurityContext::NONE) {
             unsigned size = 0;
             buffer_tx_.push_back(XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST);
@@ -162,13 +162,13 @@ public:
         buffer_tx_.push_back(XDLMS_NO_CIPHERING_ACTION_REQUEST);
         buffer_tx_.push_back(1);
         buffer_tx_.push_back((uint8_t)(XDLMS_HIGH_PRIORITY | XDLMS_SERVICE_CONFIRMED | XDLMS_INVOKE_ID));
-        buffer_tx_.push_back(static_cast<uint16_t>(class_id) >> 8u);
-        buffer_tx_.push_back((uint8_t) class_id);
-        buffer_tx_.insert(buffer_tx_.end(), logical_name.begin(), logical_name.end());
-        buffer_tx_.push_back(index);
-        buffer_tx_.push_back(data.empty() ? 0u : 1u);
-        buffer_tx_.insert(buffer_tx_.end(), data.begin(), data.end());
-        return std::make_pair(DataAccessResult::SUCCESS,{});
+        buffer_tx_.push_back(static_cast<uint16_t>(request.class_id) >> 8u);
+        buffer_tx_.push_back((uint8_t) request.class_id);
+        buffer_tx_.insert(buffer_tx_.end(), request.logical_name.begin(), request.logical_name.end());
+        buffer_tx_.push_back(request.index);
+        buffer_tx_.push_back(request.data.empty() ? 0u : 1u);
+        buffer_tx_.insert(buffer_tx_.end(), request.data.begin(), request.data.end());
+        return {DataAccessResult::SUCCESS,{}};
     }
 /*
     auto connection_request() -> const std::vector<uint8_t>& {
@@ -321,16 +321,16 @@ auto Cosem::disconnect() {
     pimpl_->disconnect();
 }
 
-auto Cosem::get_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
-    return pimpl_->act_request(class_id, logical_name, index, data);
+auto Cosem::get_request(Request const& request) -> Response {
+    return pimpl_->act_request(request);
 }
 
-auto Cosem::set_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
-    return pimpl_->act_request(class_id, logical_name, index, data);
+auto Cosem::set_request(Request const& request) -> Response {
+    return pimpl_->act_request(request);
 }
 
-auto Cosem::act_request(ClassID class_id, LogicalName logical_name, uint8_t index, std::vector<uint8_t> data) -> std::pair<DataAccessResult, std::vector<uint8_t>> {
-    return pimpl_->act_request(class_id, logical_name, index, data);
+auto Cosem::act_request(Request const& request) -> Response {
+    return pimpl_->act_request(request);
 }
 
 }

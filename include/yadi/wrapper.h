@@ -25,26 +25,24 @@
 #include <yadi/link_layer.h>
 #include <memory>
 
-namespace yadi
+namespace dlms
 {
 
-struct wrapper_params
+struct WrapperParameters
 {
     uint16_t w_port_source = 0x01;
     uint16_t w_port_destination = 0x01;
     uint16_t timeout_millis = 2000;
 };
 
-class wrapper : public link_layer
+class Wrapper
 {
 public:
-    wrapper();
-    ~wrapper();
-    void connect(phy_layer& phy) override;
-    void disconnect(phy_layer& phy) override;
-    void send(phy_layer& phy, const std::vector<uint8_t>& buffer) override;
-    void read(phy_layer& phy, std::vector<uint8_t>& buffer) override;
-    auto parameters() -> wrapper_params&;
+    Wrapper();
+    ~Wrapper();
+    void send(std::vector<uint8_t> const& buffer);
+    void read() -> std::vector<uint8_t>;
+    auto parameters() -> WrapperParameters&;
 private:
     class impl;
     std::unique_ptr<impl> m_impl;
