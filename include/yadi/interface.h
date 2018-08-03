@@ -19,35 +19,22 @@
 
 ///@file
 
-#ifndef WRAPPER_H_
-#define WRAPPER_H_
+#ifndef YADI_DLMS_INTERFACE_H
+#define YADI_DLMS_INTERFACE_H
 
-#include <yadi/interface.h>
-#include <memory>
+#include <cstdint>
+#include <vector>
 
 namespace dlms
 {
 
-struct WrapperParameters
-{
-    uint16_t w_port_source = 0x01;
-    uint16_t w_port_destination = 0x01;
-    uint16_t timeout_millis = 2000;
-};
-
-class Wrapper : DataTransfer
-{
-public:
-    Wrapper(DataTransfer &dtransfer);
-    ~Wrapper();
-    void send(std::vector<uint8_t> const& buffer) override;
-    auto read() -> std::vector<uint8_t> override;
-    auto parameters() -> WrapperParameters&;
-private:
-    class impl;
-    std::unique_ptr<impl> pimpl_;
-};
+    class DataTransfer {
+    public:
+        virtual ~DataTransfer() {}
+        virtual void send(std::vector<uint8_t> const& data) = 0;
+        virtual auto read() -> std::vector<uint8_t> = 0;
+    };
 
 }
 
-#endif /* WRAPPER_H_ */
+#endif //YADI_DLMS_INTERFACE_H

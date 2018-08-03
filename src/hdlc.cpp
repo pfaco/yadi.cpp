@@ -56,6 +56,14 @@ struct HdlcConnection
     uint16_t rx_payload_size = 0;
     uint16_t max_information_field_length_tx = 128;
     uint16_t max_information_field_length_rx = 128;
+    void reset() {
+        rx_control = 0;
+        rx_sss = 0;
+        tx_sss = 0;
+        rx_rrr = 0;
+        rx_payload_offset = 0;
+        rx_payload_size = 0;
+    }
 };
 
 class Hdlc::impl
@@ -113,7 +121,7 @@ public:
         dtransfer_.send(buffer);
     }
 
-    auto read() -> std::vector<uint8_t>& {
+    auto read() -> std::vector<uint8_t> {
         std::vector<uint8_t> retval;
         auto buffer_rx = dtransfer_.read();
         verify_read_data(buffer_rx);
@@ -132,17 +140,17 @@ public:
 
 private:
     void verify_read_data(std::vector<uint8_t> &buffer) {
-        size_t offset = 0;
+        uint16_t offset = 0;
 
         while (buffer[offset] != HDLC_FLAG) {
             offset++;
         }
 
-        if ((buffer[offset+1] & 0xF0) != HDLC_FORMAT) {
+        if ((buffer[offset+1] & 0xF0u) != HDLC_FORMAT) {
             throw std::runtime_error("HDLC: received invalid frame format");
         }
 
-        uint_fast16_t frame_size = ((buffer[1+offset] & 0x0F) << 8) | buffer[2+offset];
+        uint_fast16_t frame_size = static_cast<uint_fast16_t>(((buffer[1+offset] & 0x0Fu) << 8u) | buffer[2+offset]);
         if (frame_size != buffer.size()-2-offset) {
             throw std::runtime_error("HDLC: received invalid frame format");
         }
@@ -151,8 +159,8 @@ private:
             throw std::runtime_error("HDLC: received invalid address");
         }
 
-        int addr_offset = 4;
-        while (addr_offset < frame_size && (buffer[offset + addr_offset++] & 0x01) != 0x01);
+        uint16_t addr_offset = 4;
+        while (addr_offset < frame_size && (buffer[offset + addr_offset++] & 0x01u) != 0x01u);
         //if (!Arrays.equals(params.serverAddress, Arrays.copyOfRange(data, 4, offset))) {
         //  throw new link_layer_exception(LinkLayerExceptionReason.RECEIVED_INVALID_ADDRESS);
         //}
@@ -160,8 +168,8 @@ private:
         connection_.rx_control = buffer[offset + addr_offset++];
         if (buffer.size() - offset - addr_offset > 3)
         {
-            connection_.rx_payload_offset = offset + addr_offset + 2;
-            connection_.rx_payload_size = buffer.size() - offset - 3;
+            connection_.rx_payload_offset = static_cast<uint16_t>(offset + addr_offset + 2u);
+            connection_.rx_payload_size = static_cast<uint16_t>(buffer.size() - offset - 3u);
         } else {
             connection_.rx_payload_offset = 0;
             connection_.rx_payload_size = 0;
@@ -170,7 +178,7 @@ private:
         uint_fast16_t fcs = buffer[offset + addr_offset +1];
         fcs <<= 8;
         fcs |= buffer[offset + addr_offset];
-        if (fcs != checksequence_calc(buffer, offset+1, addr_offset-1)) {
+        if (fcs != checksequence_calc(buffer, offset+1, addr_offset-1u)) {
             throw std::runtime_error("HDLC: received invalid check sequence");
         }
 
@@ -181,7 +189,7 @@ private:
             throw std::runtime_error("HDLC: received invalid check sequence");
         }
 
-        if ( (connection_.rx_control & 0x10) != 0x10) {
+        if ( (connection_.rx_control & 0x10u) != 0x10) {
             throw std::runtime_error("HDLC: segmentation not supported");
         }
 
@@ -189,12 +197,12 @@ private:
         connection_.rx_rrr = 0;
         connection_.rx_sss = 0;
 
-        if ((connection_.rx_control & 0x01) == 0x00) {
-            connection_.rx_rrr = (connection_.rx_control >> 5) & 0x07;
-            connection_.rx_sss = (connection_.rx_control >> 1) & 0x07;
+        if ((connection_.rx_control & 0x01u) == 0x00) {
+            connection_.rx_rrr = static_cast<uint8_t>((connection_.rx_control >> 5u) & 0x07u);
+            connection_.rx_sss = static_cast<uint8_t>((connection_.rx_control >> 1u) & 0x07u);
             connection_.rx_control &= 0x01; //remove sss and rrr bits from control
-        } else if ((connection_.rx_control & 0x02) == 0x00) {
-            connection_.rx_rrr = (connection_.rx_control >> 5) & 0x07;
+        } else if ((connection_.rx_control & 0x02u) == 0x00) {
+            connection_.rx_rrr = static_cast<uint8_t>((connection_.rx_control >> 5u) & 0x07u);
             connection_.rx_control &= 0x0F; //remove rrr bits from control
         }
 
@@ -204,6 +212,7 @@ private:
     }
 
     void frame_init(std::vector<uint8_t> &buffer, uint8_t control_byte, size_t size) {
+        control_byte |= 0x10u; //always final
         buffer.push_back(HDLC_FLAG);
         buffer.push_back(HDLC_FORMAT);
         buffer.push_back(0); //size
@@ -211,7 +220,7 @@ private:
             buffer.push_back(params_.server_addr.value() >> ((params_.server_addr.size()-i-1)*8)); //TODO
         }
         buffer.push_back(params_.client_addr.value());
-        buffer.push_back(control_byte | 0x10); //always final
+        buffer.push_back(control_byte);
         if (size > 0) {
             buffer.push_back(0); //header hcs
             buffer.push_back(0); //header hcs
@@ -245,7 +254,7 @@ private:
      * bytes are never generated. The bytes for settings the max_info_len parameters are only
      * generated if those are different from the default (128).
      */
-    auto construct_snrm() -> std::vector<uint8_t>& {
+    auto construct_snrm() -> std::vector<uint8_t> {
         std::vector<uint8_t> temp_buffer;
         if (params_.max_information_field_length_tx < 128) {
             temp_buffer.push_back(0x05);
@@ -304,6 +313,7 @@ private:
                 break;
             }
         }
+        return true;
     }
 
 };
@@ -345,7 +355,7 @@ static bool is_frame_complete(const std::vector<uint8_t> &data) {
     if(size < (offset + 9) || data[offset] != HDLC_FLAG || data[size - 1] != HDLC_FLAG) {
         return false;
     }
-    if(size  < (((data[offset + 1] & 0x07) << 8 ) + data[offset + 2] + 2u)) {
+    if(size  < (((data[offset + 1] & 0x07) << 8u ) + data[offset + 2] + 2u)) {
         return false;
     }
     return true;
@@ -389,7 +399,7 @@ static auto checksequence_calc(std::vector<uint8_t> &data, size_t offset, size_t
 
     uint_fast16_t fcs = 0xffff;
     while (size--) {
-        fcs = (fcs >> 8) ^ table[(fcs ^ data[offset++]) & 0xff];
+        fcs = (fcs >> 8u) ^ table[(fcs ^ data[offset++]) & 0xff];
     }
     return ~fcs;
 }

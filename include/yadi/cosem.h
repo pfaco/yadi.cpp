@@ -96,6 +96,7 @@ class LogicalName {
 public:
     LogicalName(std::string const& str);
     LogicalName(std::initializer_list<uint8_t> const& initializer_list);
+    ~LogicalName();
     std::array<uint8_t,6>::const_iterator begin() const;
     std::array<uint8_t,6>::const_iterator end() const;
 private:
@@ -104,8 +105,6 @@ private:
 };
 
 struct Request {
-    Request(ClassID classId, LogicalName logicalName, uint8_t index_, std::vector<uint8_t> data_ = {}) :
-    class_id{classId}, logical_name{logicalName}, index{index_}, data{data_} {}
     ClassID const class_id;
     LogicalName const logical_name;
     uint8_t const index;
@@ -119,7 +118,7 @@ struct Response {
 
 class Cosem {
 public:
-    Cosem(DataTransfer &dtransfer);
+    explicit Cosem(DataTransfer &dtransfer);
     ~Cosem();
     void set_link_layer(DataTransfer &dtransfer);
     auto parameters() -> CosemParameters&;

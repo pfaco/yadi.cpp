@@ -3,6 +3,7 @@ project(yadi_dlms
         VERSION 0.0.1
         LANGUAGES CXX)
 
+add_subdirectory(demo)
 add_subdirectory(test)
 
 ## Sources
@@ -11,14 +12,12 @@ set(yadi_SRC
     src/data_type.cpp
     src/emode.cpp
     src/hdlc.cpp
-    src/obis.cpp
+    src/logical_name.cpp
     src/security.cpp
     src/wrapper.cpp)
 
 ## Add yadi library
 add_library(${PROJECT_NAME} STATIC ${yadi_SRC})
-
-target_link_libraries(yadi_dlms PUBLIC ssp)
 
 ## Include headers
 target_include_directories(${PROJECT_NAME}

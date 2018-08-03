@@ -22,7 +22,7 @@
 #ifndef SERIAL_H_
 #define SERIAL_H_
 
-#include <yadi/phy_layer.h>
+#include <yadi/interface.h>
 #include <ssp/serial.h>
 #include <memory.h>
 
@@ -37,19 +37,41 @@ public:
     virtual void bytes_read(std::vector<uint8_t> const& buffer) = 0;
 };
 
-class serial : public dlms::PhyLayer
+class serial : public dlms::DataTransfer
 {
-public:
-    explicit serial(const std::string &port_name);
-    ~serial();
-    void send(const std::vector<uint8_t> &buffer) override;
-    auto read() -> std::vector<uint8_t> override;
-    void add_listener(const std::weak_ptr<serial_listener> &listener);
-    auto port() -> serial_port&;
-
 private:
-    class impl;
-    std::unique_ptr<impl> m_pimpl;
+    SerialPort serial_;
+    std::vector<std::weak_ptr<serial_listener>> listeners_;
+public:
+    serial(const std::string &port_name) : serial_{port_name} {}
+    ~serial() = default;
+
+    void send(const std::vector<uint8_t> &buffer) override {
+        serial_.write(buffer);
+        for (auto l : listeners_) {
+            if (auto li = l.lock()) {
+                li->bytes_sent(buffer);
+            }
+        }
+    }
+
+    auto read() -> std::vector<uint8_t> override {
+        auto buffer = serial_.read();
+        for (auto l : listeners_) {
+            if (auto li = l.lock()) {
+                li->bytes_read(buffer);
+            }
+        }
+        return buffer;
+    }
+
+    void add_listener(std::weak_ptr<serial_listener> listener) {
+        listeners_.push_back(std::move(listener));
+    }
+
+    auto port() -> SerialPort& {
+        return serial_;
+    }
 };
 
 }
