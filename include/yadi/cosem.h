@@ -27,7 +27,7 @@
 #include <memory>
 #include <algorithm>
 #include <utility>
-#include <yadi/link_layer.h>
+#include <yadi/interface.h>
 
 namespace dlms
 {
@@ -96,15 +96,14 @@ class LogicalName {
 public:
     LogicalName(std::string const& str);
     LogicalName(std::initializer_list<uint8_t> const& initializer_list);
-    std::iterator begin() const;
-    std::iterator end() const;
+    std::array<uint8_t,6>::const_iterator begin() const;
+    std::array<uint8_t,6>::const_iterator end() const;
 private:
     class impl;
     std::unique_ptr<impl> pimpl_;
 };
 
-struct Request
-{
+struct Request {
     Request(ClassID classId, LogicalName logicalName, uint8_t index_, std::vector<uint8_t> data_ = {}) :
     class_id{classId}, logical_name{logicalName}, index{index_}, data{data_} {}
     ClassID const class_id;
@@ -113,17 +112,16 @@ struct Request
     std::vector<uint8_t> const data;
 };
 
-struct Response
-{
-    DataAccessResult result;
+struct Response {
+    DataAccessResult const result;
     std::vector<uint8_t> data;
 };
 
 class Cosem {
 public:
-    Cosem(LinkLayer &link);
+    Cosem(DataTransfer &dtransfer);
     ~Cosem();
-    void set_link_layer(LinkLayer &link);
+    void set_link_layer(DataTransfer &dtransfer);
     auto parameters() -> CosemParameters&;
     auto connect() -> AssociationResult;
     void disconnect();

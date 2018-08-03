@@ -16,14 +16,17 @@ namespace dlms
         return data.size() >= 15 && data[data.size()-2] == 0x0D && data[data.size()-1] == 0x0A;
     }
 
-    bool emode::connect(PhyLayer &phy) {
+    unsigned emode_connect(DataTransfer &dtransfer, unsigned desired_baud) {
         std::vector<uint8_t> buffer_rx;
-        phy.send(ask_baud_frame);
+        dtransfer.send(ask_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
-        buffer_rx phy.read();
+        buffer_rx = dtransfer.read();
+        if (!is_frame_complete(buffer_rx)) {
+            throw std::runtime_error{"emode: invalid data"};
+        }
         accept_baud_frame[2] = buffer_rx[4] > 0x35 ? 0x35 : buffer_rx[4];
-        phy.send(accept_baud_frame);
+        dtransfer.send(accept_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
-        return true;
+        return 9600;
     }
 }

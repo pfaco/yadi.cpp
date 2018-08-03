@@ -60,18 +60,16 @@ struct HdlcConnection
 
 class Hdlc::impl
 {
-    PhyLayer &phy_;
+    DataTransfer &dtransfer_;
     HdlcParameters params_;
     HdlcConnection connection_;
-    std::vector<uint8_t> buffer_rx_{128};
-    std::vector<uint8_t> buffer_tx_{128};
 
 public:
 
-    impl(PhyLayer &phy) : phy_{phy} {}
+    impl(DataTransfer &dtransfer) : dtransfer_{dtransfer} {}
 
-    void set_phy_layer(PhyLayer &phy) {
-        phy_ = phy;
+    void set_phy_layer(DataTransfer &dtransfer) {
+        dtransfer_ = dtransfer;
     }
 
     auto parameters() -> HdlcParameters& {
@@ -81,19 +79,23 @@ public:
     bool connect() {
         connection_.rx_sss = 0;
         connection_.tx_sss = 0;
-        phy_.send(construct_snrm());
-        read_data();
-        return parse_snrm_response();
+        dtransfer_.send(construct_snrm());
+        auto buffer = dtransfer_.read();
+        verify_read_data(buffer);
+        return parse_snrm_response(buffer);
     }
 
     bool disconnect() {
-        frame_init(DISC_CONTROL, 0);
-        phy_.send(frame_close());
-        read_data();
+        std::vector<uint8_t> buffer_tx;
+        frame_init(buffer_tx, DISC_CONTROL, 0);
+        frame_close(buffer_tx);
+        dtransfer_.send(buffer_tx);
+        auto buffer = dtransfer_.read();
+        verify_read_data(buffer);
         return connection_.rx_control == UA_CONTROL;
     }
 
-    void send(const std::vector<uint8_t>& buffer) {
+    void send(const std::vector<uint8_t>& data) {
         uint8_t control = I_CONTROL;
         connection_.rx_sss += 1;
         connection_.rx_sss &= 0x07;
@@ -101,81 +103,81 @@ public:
         control |= connection_.tx_sss << 1;
         connection_.tx_sss += 1;
         connection_.tx_sss &= 0x07;
-        frame_init(control, buffer.size() + 3);
-        buffer_tx_.push_back(0xE6);
-        buffer_tx_.push_back(0xE6);
-        buffer_tx_.push_back(0);
-        frame_update(buffer);
-        phy_.send(frame_close());
+        std::vector<uint8_t> buffer;
+        frame_init(buffer, control, data.size() + 3);
+        buffer.push_back(0xE6);
+        buffer.push_back(0xE6);
+        buffer.push_back(0);
+        frame_update(buffer, data);
+        frame_close(buffer);
+        dtransfer_.send(buffer);
     }
 
     auto read() -> std::vector<uint8_t>& {
         std::vector<uint8_t> retval;
-        buffer_rx_ = phy_.read();
+        auto buffer_rx = dtransfer_.read();
+        verify_read_data(buffer_rx);
         size_t offset = connection_.rx_payload_offset;
-        if (buffer_rx_.size() < (offset + 3)) {
+        if (buffer_rx.size() < (offset + 3)) {
             throw std::runtime_error("HDLC: received invalid LLC bytes");
         }
-        if (buffer_rx_[offset] != 0xE6 || buffer_rx_[offset + 1] != 0xE7 || buffer_rx_[offset + 2] != 0x00) {
+        if (buffer_rx[offset] != 0xE6 || buffer_rx[offset + 1] != 0xE7 || buffer_rx[offset + 2] != 0x00) {
             throw std::runtime_error("HDLC: received invalid LLC bytes");
         }
         for (size_t i = 3; i < connection_.rx_payload_size; ++i) {
-            retval.push_back(buffer_rx_[i]);
+            retval.push_back(buffer_rx[i]);
         }
         return retval;
     }
 
 private:
-    void read_data() {
-        bool success_rx = false;
-        uint_fast8_t tries = 0;
-
+    void verify_read_data(std::vector<uint8_t> &buffer) {
         size_t offset = 0;
 
-        while (buffer_rx_[offset] != HDLC_FLAG) {
+        while (buffer[offset] != HDLC_FLAG) {
             offset++;
         }
 
-        if ((buffer_rx_[offset+1] & 0xF0) != HDLC_FORMAT) {
+        if ((buffer[offset+1] & 0xF0) != HDLC_FORMAT) {
             throw std::runtime_error("HDLC: received invalid frame format");
         }
 
-        uint_fast16_t frame_size = ((buffer_rx_[1+offset] & 0x0F) << 8) | buffer_rx_[2+offset];
-        if (frame_size != buffer_rx_.size()-2-offset) {
+        uint_fast16_t frame_size = ((buffer[1+offset] & 0x0F) << 8) | buffer[2+offset];
+        if (frame_size != buffer.size()-2-offset) {
             throw std::runtime_error("HDLC: received invalid frame format");
         }
 
-        if (params_.client_addr.value() != buffer_rx_[offset+3]) {
+        if (params_.client_addr.value() != buffer[offset+3]) {
             throw std::runtime_error("HDLC: received invalid address");
         }
 
         int addr_offset = 4;
-        while (addr_offset < frame_size && (buffer_rx_[offset + addr_offset++] & 0x01) != 0x01);
+        while (addr_offset < frame_size && (buffer[offset + addr_offset++] & 0x01) != 0x01);
         //if (!Arrays.equals(params.serverAddress, Arrays.copyOfRange(data, 4, offset))) {
         //  throw new link_layer_exception(LinkLayerExceptionReason.RECEIVED_INVALID_ADDRESS);
         //}
 
-        connection_.rx_control = buffer_rx_[offset + addr_offset++];
-        if (buffer_rx_.size() - offset - addr_offset > 3)
+        connection_.rx_control = buffer[offset + addr_offset++];
+        if (buffer.size() - offset - addr_offset > 3)
         {
             connection_.rx_payload_offset = offset + addr_offset + 2;
-            connection_.rx_payload_size = buffer_rx_.size() - offset - 3;
+            connection_.rx_payload_size = buffer.size() - offset - 3;
         } else {
             connection_.rx_payload_offset = 0;
             connection_.rx_payload_size = 0;
         }
 
-        uint_fast16_t fcs = buffer_rx_[offset + addr_offset +1];
+        uint_fast16_t fcs = buffer[offset + addr_offset +1];
         fcs <<= 8;
-        fcs |= buffer_rx_[offset + addr_offset];
-        if (fcs != checksequence_calc(buffer_rx_, offset+1, addr_offset-1)) {
+        fcs |= buffer[offset + addr_offset];
+        if (fcs != checksequence_calc(buffer, offset+1, addr_offset-1)) {
             throw std::runtime_error("HDLC: received invalid check sequence");
         }
 
-        fcs = buffer_rx_[buffer_rx_.size()-2];
+        fcs = buffer[buffer.size()-2];
         fcs <<= 8;
-        fcs |= buffer_rx_[buffer_rx_.size()-3];
-        if (fcs != checksequence_calc(buffer_rx_, offset+1, buffer_rx_.size()-4-offset)) {
+        fcs |= buffer[buffer.size()-3];
+        if (fcs != checksequence_calc(buffer, offset+1, buffer.size()-4-offset)) {
             throw std::runtime_error("HDLC: received invalid check sequence");
         }
 
@@ -201,44 +203,40 @@ private:
         }
     }
 
-    void frame_init(uint8_t control_byte, size_t size) {
-        buffer_tx_.clear();
-        buffer_tx_.push_back(HDLC_FLAG);
-        buffer_tx_.push_back(HDLC_FORMAT);
-        buffer_tx_.push_back(0); //size
+    void frame_init(std::vector<uint8_t> &buffer, uint8_t control_byte, size_t size) {
+        buffer.push_back(HDLC_FLAG);
+        buffer.push_back(HDLC_FORMAT);
+        buffer.push_back(0); //size
         for (size_t i = 0; i < params_.server_addr.size(); ++i) {
-            buffer_tx_.push_back(params_.server_addr.value() >> ((params_.server_addr.size()-i-1)*8)); //TODO
+            buffer.push_back(params_.server_addr.value() >> ((params_.server_addr.size()-i-1)*8)); //TODO
         }
-        buffer_tx_.push_back(params_.client_addr.value());
-        buffer_tx_.push_back(control_byte | 0x10); //always final
+        buffer.push_back(params_.client_addr.value());
+        buffer.push_back(control_byte | 0x10); //always final
         if (size > 0) {
-            buffer_tx_.push_back(0); //header hcs
-            buffer_tx_.push_back(0); //header hcs
+            buffer.push_back(0); //header hcs
+            buffer.push_back(0); //header hcs
         }
     }
 
-    void frame_update(std::vector<uint8_t> const& data) {
-        for (uint8_t b : data) {
-            buffer_tx_.push_back(b);
-        }
+    void frame_update(std::vector<uint8_t> &buffer, std::vector<uint8_t> const& data) {
+        buffer.insert(buffer.end(), data.begin(), data.end());
     }
 
-    auto frame_close() -> std::vector<uint8_t>& {
+    void frame_close(std::vector<uint8_t> &buffer) {
         size_t address_offset = params_.server_addr.size() + 1;
-        buffer_tx_.push_back(0); //fcs
-        buffer_tx_.push_back(0); //fcs
-        buffer_tx_.push_back(HDLC_FLAG);
-        buffer_tx_[1] = HDLC_FORMAT | (uint8_t)((buffer_tx_.size() - 2) >> 8);
-        buffer_tx_[2] = (uint8_t)(buffer_tx_.size() - 2);
-        uint_fast16_t fcs = checksequence_calc(buffer_tx_, 1, address_offset + 3);
-        buffer_tx_[4 + address_offset] = (uint8_t)fcs;
-        buffer_tx_[5 + address_offset] = (uint8_t)(fcs >> 8);
-        if (buffer_tx_.size() > (address_offset + 7)) {
-            fcs = checksequence_calc(buffer_tx_, 1, buffer_tx_.size() - 4);
-            buffer_tx_[buffer_tx_.size() - 3] = (uint8_t)fcs;
-            buffer_tx_[buffer_tx_.size() - 2] = (uint8_t)(fcs >> 8);
+        buffer.push_back(0); //fcs
+        buffer.push_back(0); //fcs
+        buffer.push_back(HDLC_FLAG);
+        buffer[1] = HDLC_FORMAT | (uint8_t)((buffer.size() - 2) >> 8);
+        buffer[2] = (uint8_t)(buffer.size() - 2);
+        uint_fast16_t fcs = checksequence_calc(buffer, 1, address_offset + 3);
+        buffer[4 + address_offset] = (uint8_t)fcs;
+        buffer[5 + address_offset] = (uint8_t)(fcs >> 8);
+        if (buffer.size() > (address_offset + 7)) {
+            fcs = checksequence_calc(buffer, 1, buffer.size() - 4);
+            buffer[buffer.size() - 3] = (uint8_t)fcs;
+            buffer[buffer.size() - 2] = (uint8_t)(fcs >> 8);
         }
-        return buffer_tx_;
     }
 
     /**
@@ -269,18 +267,20 @@ private:
             temp_buffer.push_back(params_.max_information_field_length_rx >> 8);
             temp_buffer.push_back(params_.max_information_field_length_rx);
         }
-        frame_init(SNRM_CONTROL, temp_buffer.size());
-        frame_update(temp_buffer);
-        return frame_close();
+        std::vector<uint8_t> buffer;
+        frame_init(buffer, SNRM_CONTROL, temp_buffer.size());
+        frame_update(buffer, temp_buffer);
+        frame_close(buffer);
+        return buffer;
     }
 
-    bool parse_snrm_response() {
+    bool parse_snrm_response(std::vector<uint8_t> &buffer) {
         size_t offset = connection_.rx_payload_offset;
         size_t size = connection_.rx_payload_size;
         if (size == 0) {
             return false;
         }
-        if (size < 5 || buffer_rx_[offset] != 0x81 || buffer_rx_[offset+1] != 0x80) {
+        if (size < 5 || buffer[offset] != 0x81 || buffer[offset+1] != 0x80) {
             return false;
         }
         if (connection_.rx_control != UA_CONTROL) {
@@ -288,12 +288,12 @@ private:
         }
         offset += 3;
         while (offset < size) {
-            uint_fast8_t id = buffer_rx_[offset++];
-            uint_fast8_t len = buffer_rx_[offset++];
+            uint_fast8_t id = buffer[offset++];
+            uint_fast8_t len = buffer[offset++];
             uint32_t value = 0;
             while (len < 4 && offset < size && len-- != 0) {
                 value <<= 8;
-                value |= buffer_rx_[offset++];
+                value |= buffer[offset++];
             }
             switch (id) {
             case 5:
@@ -308,11 +308,11 @@ private:
 
 };
 
-Hdlc::Hdlc(PhyLayer &phy) : pimpl_{std::make_unique<impl>(phy)} {}
+Hdlc::Hdlc(DataTransfer &dtransfer) : pimpl_{std::make_unique<impl>(dtransfer)} {}
 Hdlc::~Hdlc() = default;
 
-void Hdlc::set_phy_layer(yadi::PhyLayer &phy) {
-    pimpl_->set_phy_layer(phy);
+void Hdlc::set_phy_layer(DataTransfer &dtransfer) {
+    pimpl_->set_phy_layer(dtransfer);
 }
 
 auto Hdlc::parameters() -> HdlcParameters&  {

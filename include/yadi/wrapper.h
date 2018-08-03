@@ -22,7 +22,7 @@
 #ifndef WRAPPER_H_
 #define WRAPPER_H_
 
-#include <yadi/link_layer.h>
+#include <yadi/interface.h>
 #include <memory>
 
 namespace dlms
@@ -35,17 +35,17 @@ struct WrapperParameters
     uint16_t timeout_millis = 2000;
 };
 
-class Wrapper
+class Wrapper : DataTransfer
 {
 public:
-    Wrapper();
+    Wrapper(DataTransfer &dtransfer);
     ~Wrapper();
-    void send(std::vector<uint8_t> const& buffer);
-    void read() -> std::vector<uint8_t>;
+    void send(std::vector<uint8_t> const& buffer) override;
+    void read() -> std::vector<uint8_t> override;
     auto parameters() -> WrapperParameters&;
 private:
     class impl;
-    std::unique_ptr<impl> m_impl;
+    std::unique_ptr<impl> pimpl_;
 };
 
 }

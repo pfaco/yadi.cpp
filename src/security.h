@@ -17,24 +17,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-///@file
+#ifndef YADI_DLMS_SECURITY_H
+#define YADI_DLMS_SECURITY_H
 
-#ifndef LINK_LAYER_H_
-#define LINK_LAYER_H_
+#include <yadi/cosem.h>
 
-#include <cstdint>
-#include <vector>
+namespace dlms
+{
 
-namespace dlms {
-
-class LinkLayer
+class Security
 {
 public:
-    virtual ~LinkLayer(){};
-    virtual void send(std::vector<uint8_t> const& buffer) = 0;
-    virtual auto read() -> std::vector<uint8_t> = 0;
+    static void generate_challenger(unsigned size, std::vector <uint8_t> &buffer);
+
+    static auto process_challenger(CosemParameters const &params) -> std::vector<uint8_t>;
 };
 
 }
 
-#endif /* LINK_LAYER_H_ */
+#endif //YADI_DLMS_SECURITY_H

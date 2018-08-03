@@ -21,7 +21,7 @@
 
 #include <yadi/wrapper.h>
 
-namespace yadi
+namespace dlms
 {
 
 static const uint8_t WRAPPER_VERSION_MSB = 0x00;
@@ -37,69 +37,57 @@ static auto wrapper_frame_complete(const std::vector<uint8_t>& buffer) -> bool
     return size == buffer.size();
 }
 
-class wrapper::impl
+class Wrapper::impl
 {
+    DataTransfer& dtransfer_;
+    WrapperParameters params_;
+
 public:
-    auto parameters() -> wrapper_params&
-    {
-        return m_params;
+    impl(DataTransfer &dtransfer) : dtransfer_{dtransfer} {}
+
+    auto parameters() -> WrapperParameters& {
+        return params_;
     }
 
-    void send(phy_layer& phy, const std::vector<uint8_t>& buffer)
+    void send(std::vector<uint8_t> const& data) {
+        std::vector<uint8_t> buffer;
+        buffer.clear();
+        buffer.push_back(WRAPPER_VERSION_MSB);
+        buffer.push_back(WRAPPER_VERSION_LSB);
+        buffer.push_back(static_cast<uint8_t>(data.size() >> 8));
+        buffer.push_back(static_cast<uint8_t>(data.size()));
+        buffer.push_back(static_cast<uint8_t>(params_.w_port_destination >> 8));
+        buffer.push_back(static_cast<uint8_t>(params_.w_port_destination));
+        buffer.push_back(static_cast<uint8_t>(params_.w_port_source >> 8));
+        buffer.push_back(static_cast<uint8_t>(params_.w_port_source));
+        buffer.insert(buffer.end(), data.begin(), data.end());
+        dtransfer_.send(buffer);
+    }
+
+    auto read() -> std::vector<uint8_t>
     {
-        m_buffer_tx.clear();
-        m_buffer_tx.push_back(WRAPPER_VERSION_MSB);
-        m_buffer_tx.push_back(WRAPPER_VERSION_LSB);
-        m_buffer_tx.push_back(buffer.size() >> 8);
-        m_buffer_tx.push_back(buffer.size());
-        m_buffer_tx.push_back(m_params.w_port_destination >> 8);
-        m_buffer_tx.push_back(m_params.w_port_destination);
-        m_buffer_tx.push_back(m_params.w_port_source >> 8);
-        m_buffer_tx.push_back(m_params.w_port_source);
-        for (uint8_t b : buffer) {
-            m_buffer_tx.push_back(b);
+        auto buffer = dtransfer_.read();
+        if (!wrapper_frame_complete(buffer)) {
+            throw std::runtime_error("wrapper: received invalid data");
         }
-        phy.send(m_buffer_tx);
+        //TODO unpack wrapper frame
+        return buffer;
     }
-
-    void read(phy_layer& phy, std::vector<uint8_t>& buffer)
-    {
-        m_buffer_rx.clear();
-        phy.read(m_buffer_rx, m_params.timeout_millis, wrapper_frame_complete);
-    }
-
-private:
-    wrapper_params m_params;
-    std::vector<uint8_t> m_buffer_rx{128};
-    std::vector<uint8_t> m_buffer_tx{128};
 };
 
-wrapper::wrapper() : m_impl{std::make_unique<impl>()} {}
-wrapper::~wrapper() = default;
+Wrapper::Wrapper(DataTransfer &dtransfer) : pimpl_{std::make_unique<impl>(dtransfer)} {}
+Wrapper::~Wrapper() = default;
 
-void wrapper::connect(phy_layer& phy)
-{
-    //wrapper protocol doesn't have connection
+void Wrapper::send(std::vector<uint8_t> const& buffer) {
+    pimpl_->send(buffer);
 }
 
-void wrapper::disconnect(phy_layer& phy)
-{
-    //wrapper protocol doesn't have disconnection
+auto Wrapper::read() -> std::vector<uint8_t> {
+    return pimpl_->read();
 }
 
-void wrapper::send(phy_layer& phy, const std::vector<uint8_t>& buffer)
-{
-    m_impl->send(phy, buffer);
-}
-
-void wrapper::read(phy_layer& phy, std::vector<uint8_t>& buffer)
-{
-    m_impl->read(phy, buffer);
-}
-
-auto wrapper::parameters() -> wrapper_params&
-{
-    return m_impl->parameters();
+auto Wrapper::parameters() -> WrapperParameters& {
+    return pimpl_->parameters();
 }
 
 }

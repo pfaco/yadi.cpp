@@ -1,5 +1,5 @@
 
-#include <yadi/data_type.h>
+#include <yadi/parser.h>
 
 namespace dlms
 {
@@ -38,20 +38,20 @@ namespace dlms
         return buffer;
     }
 
-    auto from_string(std::string const& str, data_type tag) -> std::vector<uint8_t>
+    auto from_string(std::string const& str, DataType tag) -> std::vector<uint8_t>
     {
         switch(tag) {
-            case data_type::OCTET_STRING:
-            case data_type::STRING:
+            case DataType::OCTET_STRING:
+            case DataType::STRING:
                 return pack_sized_type(static_cast<uint8_t>(tag), str);
         }
     }
 
-    auto from_bytes(std::vector<uint8_t> const& data, data_type tag) -> std::vector<uint8_t>
+    auto from_bytes(std::vector<uint8_t> const& data, DataType tag) -> std::vector<uint8_t>
     {
         switch(tag) {
-            case data_type::OCTET_STRING:
-            case data_type::STRING:
+            case DataType::OCTET_STRING:
+            case DataType::STRING:
                 return pack_sized_type(static_cast<uint8_t>(tag), data);
         }
     }

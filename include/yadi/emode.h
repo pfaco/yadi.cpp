@@ -1,17 +1,38 @@
+/*
+ * This file is part of the yadi.cpp project.
+ *
+ * Copyright (C) 2017 Paulo Faco <paulofaco@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 ///@file
 
-#ifndef INCLUDE_EMODE_H_
-#define INCLUDE_EMODE_H_
+#ifndef EMODE_H_
+#define EMODE_H_
 
-#include <yadi/phy_layer.h>
+#include <yadi/interface.h>
 
 namespace dlms
 {
-    class emode
-    {
-        public:
-            static bool connect(PhyLayer &phy);
-    };
+    /**
+     * Performs MODE-E connection into a DLMS server
+     * @param dtransfer : data transfer object to transmit and receive bytes
+     * @param desired_baud : desired baudrate in bps
+     * @return the agreed baudrate with the server
+     */
+    auto emode_connect(DataTransfer &dtransfer, unsigned desired_baud) -> unsigned;
 }
 
-#endif /* INCLUDE_EMODE_H_ */
+#endif /* EMODE_H_ */

@@ -22,18 +22,16 @@
 #ifndef HDLC_H_
 #define HDLC_H_
 
-#include <yadi/link_layer.h>
-#include <yadi/phy_layer.h>
-#include <sstream>
-
+#include <yadi/interface.h>
+#include <memory>
 
 namespace dlms
 {
 
-class client_addr
+class ClientAddress
 {
 public:
-    client_addr(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)} { };
+    ClientAddress(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)} { };
 
     auto value() const -> uint8_t {
         return m_value;
@@ -43,10 +41,10 @@ private:
     uint8_t m_value;
 };
 
-class server_addr
+class ServerAddress
 {
 public:
-    server_addr(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)}, m_size{1} {};
+    ServerAddress(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)}, m_size{1} {};
 
     auto value() -> uint32_t {
         return m_value;
@@ -84,12 +82,12 @@ struct HdlcParameters
     /**
      * Enconded server address
      */
-    server_addr server_addr = 0x01;//0x0002FEFF;
+    ServerAddress server_addr = 0x01;//0x0002FEFF;
 
     /**
      * Enconded client address
      */
-    client_addr client_addr = 0x01;
+    ClientAddress client_addr = 0x01;
 
     /**
      * Maximum number of retries
@@ -100,13 +98,13 @@ struct HdlcParameters
 /**
  * HDLC class
  */
-class Hdlc : public LinkLayer
+class Hdlc : public DataTransfer
 {
 public:
-    Hdlc(PhyLayer& phy);
+    Hdlc(DataTransfer& phy);
     ~Hdlc();
     auto parameters() -> HdlcParameters& ;
-    void set_phy_layer(PhyLayer &phy);
+    void set_phy_layer(DataTransfer &phy);
     bool connect();
     bool disconnect();
     void send(std::vector<uint8_t> const& buffer) override;

@@ -20,9 +20,8 @@
 ///@file
 
 #include <yadi/cosem.h>
-#include <yadi/security.h>
-#include <yadi/data_type.h>
-#include <yadi/packer.h>
+#include <yadi/parser.h>
+#include "security.h"
 
 namespace dlms
 {
@@ -124,14 +123,14 @@ struct CosemConnection
  */
 class Cosem::impl
 {
-    LinkLayer &link_;
+    DataTransfer &dtransfer_;
     CosemParameters params_;
     CosemConnection connection_;
     std::vector<uint8_t> buffer_rx_;
     std::vector<uint8_t> buffer_tx_;
 
 public:
-    explicit impl(LinkLayer &link) : link_{link} {}
+    explicit impl(DataTransfer &dtransfer) : dtransfer_{dtransfer} {}
 
     auto parameters() -> CosemParameters& {
         return params_;
@@ -306,7 +305,7 @@ private:
     }
 };
 
-Cosem::Cosem(LinkLayer &link) : pimpl_{std::make_unique<impl>(link)} {};
+Cosem::Cosem(DataTransfer &dtransfer) : pimpl_{std::make_unique<impl>(dtransfer)} {};
 Cosem::~Cosem() = default;
 
 auto Cosem::parameters() -> CosemParameters& {

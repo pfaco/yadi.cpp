@@ -10,7 +10,7 @@
 namespace dlms
 {
 
-enum class data_type : uint8_t
+enum class DataType : uint8_t
 {
     NULL_DATA = 0,
     ARRAY = 1,
@@ -37,8 +37,8 @@ enum class data_type : uint8_t
 };
 
 void write_size(std::vector<uint8_t> &buffer, unsigned size);
-auto from_string(std::string const& str, data_type tag = data_type::STRING) -> std::vector<uint8_t>;
-auto from_bytes(std::vector<uint8_t> const& data, data_type tag = data_type::OCTET_STRING) -> std::vector<uint8_t>;
+auto from_string(std::string const& str, DataType tag = DataType::STRING) -> std::vector<uint8_t>;
+auto from_bytes(std::vector<uint8_t> const& data, DataType tag = DataType::OCTET_STRING) -> std::vector<uint8_t>;
 auto to_string(std::vector<uint8_t> const& buffer) -> std::string;
 auto to_bytes(std::vector<uint8_t> const& buffer) -> std::vector<uint8_t>;
 

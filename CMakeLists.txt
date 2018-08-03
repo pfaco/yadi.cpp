@@ -4,17 +4,16 @@ project(yadi_dlms
         LANGUAGES CXX)
 
 add_subdirectory(test)
-add_subdirectory(demo)
 
 ## Sources
 set(yadi_SRC
     src/cosem.cpp
-    src/dlms.cpp
+    src/data_type.cpp
     src/emode.cpp
     src/hdlc.cpp
-    src/data_type.cpp
-    src/wrapper.cpp
-    src/security.cpp)
+    src/obis.cpp
+    src/security.cpp
+    src/wrapper.cpp)
 
 ## Add yadi library
 add_library(${PROJECT_NAME} STATIC ${yadi_SRC})
