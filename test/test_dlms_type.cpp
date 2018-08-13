@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "yadi/data_type.h"
+#include "yadi/parser.h"
 #include <iostream>
 
 TEST_CASE( "Write size works correctly", "[write_size]") {

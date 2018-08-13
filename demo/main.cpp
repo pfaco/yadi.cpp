@@ -62,7 +62,7 @@ auto main() -> int
         hdlc.parameters().client_addr = 0x01;
         hdlc.parameters().server_addr = 0x01;
 
-        if (dlms::emode_connect(serial, 9600) != 9600) {
+        if (dlms::emode_connect(serial, dlms::EmodeBaud::_9600) != dlms::EmodeBaud::_9600) {
             logger.error("emode.fail");
             return -1;
         }

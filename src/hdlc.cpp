@@ -105,7 +105,6 @@ public:
 
     void send(const std::vector<uint8_t>& data) {
         uint8_t control = I_CONTROL;
-        connection_.rx_sss += 1;
         connection_.rx_sss &= 0x07;
         control |= connection_.rx_sss << 5;
         control |= connection_.tx_sss << 1;
@@ -113,6 +112,7 @@ public:
         connection_.tx_sss &= 0x07;
         std::vector<uint8_t> buffer;
         frame_init(buffer, control, data.size() + 3);
+        connection_.rx_sss += 1;
         buffer.push_back(0xE6);
         buffer.push_back(0xE6);
         buffer.push_back(0);

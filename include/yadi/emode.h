@@ -26,13 +26,23 @@
 
 namespace dlms
 {
+
+    enum class EmodeBaud : char {
+          _300 = '0',
+          _600 = '1',
+         _1200 = '2',
+         _2400 = '3',
+         _4800 = '4',
+         _9600 = '5',
+        _19200 = '6'
+    };
     /**
      * Performs MODE-E connection into a DLMS server
      * @param dtransfer : data transfer object to transmit and receive bytes
      * @param desired_baud : desired baudrate in bps
      * @return the agreed baudrate with the server
      */
-    auto emode_connect(DataTransfer &dtransfer, unsigned desired_baud) -> unsigned;
+    auto emode_connect(DataTransfer &dtransfer, EmodeBaud baud) -> EmodeBaud;
 }
 
 #endif /* EMODE_H_ */

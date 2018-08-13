@@ -16,7 +16,7 @@ namespace dlms
         return data.size() >= 15 && data[data.size()-2] == 0x0D && data[data.size()-1] == 0x0A;
     }
 
-    unsigned emode_connect(DataTransfer &dtransfer, unsigned desired_baud) {
+    auto emode_connect(DataTransfer &dtransfer, EmodeBaud baud) -> EmodeBaud {
         std::vector<uint8_t> buffer_rx;
         dtransfer.send(ask_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
@@ -24,9 +24,9 @@ namespace dlms
         if (!is_frame_complete(buffer_rx)) {
             throw std::runtime_error{"emode: invalid data"};
         }
-        accept_baud_frame[2] = buffer_rx[4] > 0x35 ? 0x35 : buffer_rx[4];
+        accept_baud_frame[2] = buffer_rx[4] > static_cast<uint8_t>(baud) ? static_cast<uint8_t>(0x35) : buffer_rx[4];
         dtransfer.send(accept_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
-        return 9600;
+        return baud;
     }
 }
