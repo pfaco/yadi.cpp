@@ -22,7 +22,8 @@
 #ifndef EMODE_H_
 #define EMODE_H_
 
-#include <yadi/interface.h>
+#include <vector>
+#include <cstdint>
 
 namespace dlms
 {
@@ -36,13 +37,9 @@ namespace dlms
          _9600 = '5',
         _19200 = '6'
     };
-    /**
-     * Performs MODE-E connection into a DLMS server
-     * @param dtransfer : data transfer object to transmit and receive bytes
-     * @param desired_baud : desired baudrate in bps
-     * @return the agreed baudrate with the server
-     */
-    auto emode_connect(DataTransfer &dtransfer, EmodeBaud baud) -> EmodeBaud;
+
+    auto emode_serialize(EmodeBaud baud) -> std::vector<uint8_t>;
+    auto emode_parse(std::vector<uint8_t>) -> EmodeBaud ;
 }
 
 #endif /* EMODE_H_ */

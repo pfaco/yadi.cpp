@@ -23,11 +23,9 @@
 #define COSEM_H_
 
 #include <vector>
+#include <array>
 #include <cstdint>
 #include <memory>
-#include <algorithm>
-#include <utility>
-#include <yadi/interface.h>
 
 namespace dlms
 {
@@ -109,28 +107,27 @@ struct Request {
     LogicalName const logical_name;
     uint8_t const index;
     std::vector<uint8_t> const data;
+    Request(Request&& rhs) = default;
 };
 
 struct Response {
     DataAccessResult const result;
     std::vector<uint8_t> data;
+    Response(Response&& rhs) = default;
 };
 
 class Cosem {
+    CosemParameters params_;
 public:
-    explicit Cosem(DataTransfer &dtransfer);
-    ~Cosem();
-    void set_link_layer(DataTransfer &dtransfer);
-    auto parameters() -> CosemParameters&;
-    auto connect() -> AssociationResult;
-    void disconnect();
-    auto get_request(Request const& request) -> Response;
-    auto set_request(Request const& request) -> Response;
-    auto act_request(Request const& request) -> Response;
-
-private:
-    class impl;
-    std::unique_ptr<impl> pimpl_;
+    explicit Cosem() = default;
+    explicit Cosem(CosemParameters params) : params_{std::move(params)} {}
+    auto parameters() -> CosemParameters& { return params_; };
+    auto serialize_aarq() -> std::vector<uint8_t>;
+    auto serialize_get(Request const& req) -> std::vector<uint8_t>;
+    auto serialize_set(Request const& req) -> std::vector<uint8_t>;
+    auto serialize_act(Request const& req) -> std::vector<uint8_t>;
+    auto parse_aare(std::vector<uint8_t> const& data) -> AssociationResult;
+    auto parse_response(std::vector<uint8_t> const& data) -> Response;
 };
 
 }

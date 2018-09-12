@@ -65,24 +65,7 @@ struct HdlcConnection
         rx_payload_size = 0;
     }
 };
-
-class Hdlc::impl
-{
-    DataTransfer &dtransfer_;
-    HdlcParameters params_;
     HdlcConnection connection_;
-
-public:
-
-    impl(DataTransfer &dtransfer) : dtransfer_{dtransfer} {}
-
-    void set_phy_layer(DataTransfer &dtransfer) {
-        dtransfer_ = dtransfer;
-    }
-
-    auto parameters() -> HdlcParameters& {
-        return params_;
-    }
 
     bool connect() {
         connection_.rx_sss = 0;
@@ -138,7 +121,6 @@ public:
         return retval;
     }
 
-private:
     void verify_read_data(std::vector<uint8_t> &buffer) {
         uint16_t offset = 0;
 
@@ -211,7 +193,7 @@ private:
         }
     }
 
-    void frame_init(std::vector<uint8_t> &buffer, uint8_t control_byte, size_t size) {
+    static void frame_init(std::vector<uint8_t> &buffer, uint8_t control_byte, size_t size) {
         control_byte |= 0x10u; //always final
         buffer.push_back(HDLC_FLAG);
         buffer.push_back(HDLC_FORMAT);
@@ -227,11 +209,11 @@ private:
         }
     }
 
-    void frame_update(std::vector<uint8_t> &buffer, std::vector<uint8_t> const& data) {
+    static void frame_update(std::vector<uint8_t> &buffer, std::vector<uint8_t> const& data) {
         buffer.insert(buffer.end(), data.begin(), data.end());
     }
 
-    void frame_close(std::vector<uint8_t> &buffer) {
+    static void frame_close(std::vector<uint8_t> &buffer) {
         size_t address_offset = params_.server_addr.size() + 1;
         buffer.push_back(0); //fcs
         buffer.push_back(0); //fcs
@@ -254,7 +236,7 @@ private:
      * bytes are never generated. The bytes for settings the max_info_len parameters are only
      * generated if those are different from the default (128).
      */
-    auto construct_snrm() -> std::vector<uint8_t> {
+    auto Hdlc::serialize_snrm() -> std::vector<uint8_t> {
         std::vector<uint8_t> temp_buffer;
         if (params_.max_information_field_length_tx < 128) {
             temp_buffer.push_back(0x05);
@@ -315,36 +297,6 @@ private:
         }
         return true;
     }
-
-};
-
-Hdlc::Hdlc(DataTransfer &dtransfer) : pimpl_{std::make_unique<impl>(dtransfer)} {}
-Hdlc::~Hdlc() = default;
-
-void Hdlc::set_phy_layer(DataTransfer &dtransfer) {
-    pimpl_->set_phy_layer(dtransfer);
-}
-
-auto Hdlc::parameters() -> HdlcParameters&  {
-    return pimpl_->parameters();
-}
-
-bool Hdlc::connect() {
-    return pimpl_->connect();
-}
-
-bool Hdlc::disconnect() {
-    return pimpl_->disconnect();
-}
-
-void Hdlc::send(const std::vector<uint8_t> &buffer) {
-    pimpl_->send(buffer);
-}
-
-auto Hdlc::read() -> std::vector<uint8_t>
-{
-    return pimpl_->read();
-}
 
 static bool is_frame_complete(const std::vector<uint8_t> &data) {
     size_t offset = 0;

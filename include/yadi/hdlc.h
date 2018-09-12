@@ -22,97 +22,39 @@
 #ifndef HDLC_H_
 #define HDLC_H_
 
-#include <yadi/interface.h>
-#include <memory>
+#include <vector>
+#include <cstdint>
 
 namespace dlms
 {
-
-class ClientAddress
-{
-public:
-    ClientAddress(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)} { };
-
-    auto value() const -> uint8_t {
-        return m_value;
-    }
-
-private:
-    uint8_t m_value;
-};
-
-class ServerAddress
-{
-public:
-    ServerAddress(uint8_t value) : m_value{static_cast<uint8_t>((value << 1u) | 0x01)}, m_size{1} {};
-
-    auto value() -> uint32_t {
-        return m_value;
-    }
-
-    auto size() -> unsigned {
-        return m_size;
-    }
-
-private:
-    uint32_t m_value;
-    unsigned m_size;
-};
 
 /**
  * This class holds the parameters of a hdlc object
  */
 struct HdlcParameters
 {
-    /**
-     * The timeout for a response, in milliseconds
-     */
-    uint16_t timeout_millis = 2000;
-
-    /**
-     * Maximum length of transmitted frames
-     */
     uint16_t max_information_field_length_tx = 128;
-
-    /**
-     * Maximum length of received frames
-     */
     uint16_t max_information_field_length_rx = 128;
-
-    /**
-     * Enconded server address
-     */
-    ServerAddress server_addr = 0x01;//0x0002FEFF;
-
-    /**
-     * Enconded client address
-     */
-    ClientAddress client_addr = 0x01;
-
-    /**
-     * Maximum number of retries
-     */
-    uint8_t max_retries = 1;
+    uint8_t server_address_len = 4;
+    uint16_t server_logical_address = 1;
+    uint16_t server_physical_address = 0x3FFF;
+    uint8_t client_address = 1;
 };
 
 /**
  * HDLC class
  */
-class Hdlc : public DataTransfer
+class Hdlc
 {
+    HdlcParameters params_;
 public:
-    Hdlc(DataTransfer& phy);
-    ~Hdlc();
-    auto parameters() -> HdlcParameters& ;
-    void set_phy_layer(DataTransfer &phy);
-    bool connect();
-    bool disconnect();
-    void send(std::vector<uint8_t> const& buffer) override;
-    auto read() -> std::vector<uint8_t> override;
-
-private:
-    class impl;
-    std::unique_ptr<impl> pimpl_;
+    explicit Hdlc() = default;
+    explicit Hdlc(HdlcParameters &params) : params_{params} {}
+    auto parameters() -> HdlcParameters& {return params_; }
+    auto serialize_snrm() -> std::vector<uint8_t>;
+    auto serialize_disc() -> std::vector<uint8_t>;
+    auto serialize(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
+    auto parse(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
 };
 
 }

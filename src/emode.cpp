@@ -16,8 +16,9 @@ namespace dlms
         return data.size() >= 15 && data[data.size()-2] == 0x0D && data[data.size()-1] == 0x0A;
     }
 
-    auto emode_connect(DataTransfer &dtransfer, EmodeBaud baud) -> EmodeBaud {
-        std::vector<uint8_t> buffer_rx;
+    auto emode_serialize(EmodeBaud baud) -> std::vector<uint8_t> {
+        return ask_baud_frame;
+        /*
         dtransfer.send(ask_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
         buffer_rx = dtransfer.read();
@@ -28,5 +29,6 @@ namespace dlms
         dtransfer.send(accept_baud_frame);
         std::this_thread::sleep_for(std::chrono::milliseconds(550));
         return baud;
+         */
     }
 }

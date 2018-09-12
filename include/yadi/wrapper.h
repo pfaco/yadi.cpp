@@ -22,8 +22,8 @@
 #ifndef WRAPPER_H_
 #define WRAPPER_H_
 
-#include <yadi/interface.h>
-#include <memory>
+#include <vector>
+#include <cstdint>
 
 namespace dlms
 {
@@ -32,20 +32,17 @@ struct WrapperParameters
 {
     uint16_t w_port_source = 0x01;
     uint16_t w_port_destination = 0x01;
-    uint16_t timeout_millis = 2000;
 };
 
-class Wrapper : DataTransfer
+class Wrapper
 {
+    WrapperParameters params_;
 public:
-    Wrapper(DataTransfer &dtransfer);
-    ~Wrapper();
-    void send(std::vector<uint8_t> const& buffer) override;
-    auto read() -> std::vector<uint8_t> override;
-    auto parameters() -> WrapperParameters&;
-private:
-    class impl;
-    std::unique_ptr<impl> pimpl_;
+    explicit Wrapper() = default;
+    explicit Wrapper(WrapperParameters &params) : params_{params} {}
+    auto parameters() -> WrapperParameters& { return params_; }
+    void serialize(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
+    auto parse(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
 };
 
 }
