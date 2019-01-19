@@ -39,7 +39,7 @@ namespace wrapper
 		return size == buffer.size();
 	}
 
-    auto serialize(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>
+	auto serialize(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>
 	{
 		auto buffer = std::vector<uint8_t>{};
 		buffer.clear();
@@ -47,15 +47,15 @@ namespace wrapper
 		buffer.push_back(WRAPPER_VERSION_LSB);
 		buffer.push_back(static_cast<uint8_t>(data.size() >> 8));
 		buffer.push_back(static_cast<uint8_t>(data.size()));
-        buffer.push_back(static_cast<uint8_t>(params.w_port_destination >> 8));
-        buffer.push_back(static_cast<uint8_t>(params.w_port_destination));
-        buffer.push_back(static_cast<uint8_t>(params.w_port_source >> 8));
-        buffer.push_back(static_cast<uint8_t>(params.w_port_source));
+		buffer.push_back(static_cast<uint8_t>(params.w_port_destination >> 8));
+		buffer.push_back(static_cast<uint8_t>(params.w_port_destination));
+		buffer.push_back(static_cast<uint8_t>(params.w_port_source >> 8));
+		buffer.push_back(static_cast<uint8_t>(params.w_port_source));
 		buffer.insert(buffer.end(), data.begin(), data.end());
 		return buffer;
 	}
 
-    auto parse(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>
+	auto parse(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>
 	{
 		if (!wrapper_frame_complete(data)) {
 			throw std::runtime_error("wrapper: received invalid data");
@@ -64,5 +64,5 @@ namespace wrapper
 		return data;
 	}
 
-}
-}
+} //namespace wrapper
+} //namespace dlms

@@ -14,12 +14,15 @@ set(yadi_demo_SRC
         ../src/data_type.cpp
         ../src/logical_name.cpp)
 
-## Include headers for test target
-include_directories(../include)
-
+## Find dependencies
 find_package(ssp REQUIRED)
 find_package(spdlog REQUIRED)
 
 ## Add demo target
 add_executable(yadi_demo ${yadi_demo_SRC})
+
+## Include headers
+target_include_directories(yadi_demo PRIVATE ../include)
+
+## Add necessary libraries
 target_link_libraries(yadi_demo PUBLIC ssp)

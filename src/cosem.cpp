@@ -29,8 +29,7 @@ namespace dlms
 /**
  * COSEM Constants
  */
-enum AARQ : unsigned int
-{
+enum AARQ : unsigned int {
     AARQ_PROTOCOL_VERSION = 0,
     AARQ_APPLICATION_CONTEXT_NAME = 1,
     AARQ_CALLING_AP_TITLE = 6,
@@ -40,8 +39,7 @@ enum AARQ : unsigned int
     AARQ_USER_INFORMATION = 30,
 };
 
-enum AARE : unsigned int
-{
+enum AARE : unsigned int {
     AARE_APPLICATION_1 = 97,
     AARE_APP_CONTEXT_NAME = 1,
 };
@@ -55,8 +53,7 @@ enum BER : unsigned int {
     BER_OCTET_STRING = 0x04,
 };
 
-enum XDLMS : unsigned int
-{
+enum XDLMS : unsigned int {
     XDLMS_VERSION = 6,
     XDLMS_NO_CIPHERING_INITIATE_REQUEST = 1,
     XDLMS_NO_CIPHERING_INITIATE_RESPONSE = 8,
@@ -84,8 +81,7 @@ enum XDLMS : unsigned int
 /**
  * Conformance block TAG and bits
  */
-enum ConformanceBlock : unsigned int
-{
+enum ConformanceBlock : unsigned int {
     TAG = 95,
     //READ = 1u << 3u,
     //WRITE = 1u << 4u,
@@ -473,21 +469,16 @@ auto parse_aare(Cosem &cosem, const std::vector<uint8_t>& data) -> AssociationRe
 auto parse_get_response(Cosem &cosem, const std::vector<uint8_t>& data) -> Response
 {
     if (data.size() < 4 || data[0] != XDLMS_NO_CIPHERING_GET_RESPONSE || data[1] != 0x01) {
-        throw invalid_cosem_frame{};
+        throw InvalidCosemFrame{};
     }
 
     Response response;
-
-    switch (data[3]) {
-    case 0:
-        response.result = DataAccessResult::SUCCESS;
-        response.data.insert(std::end(response.data), std::begin(data) + 4, std::end(data));
-        break;
-    default:
-        response.result = DataAccessResult::OTHER_REASON;
-        break;
+    response.result = static_cast<DataAccessResult>(data[3]);
+    auto begin = std::begin(data) + 4;
+    auto end = std::end(data);
+    if (end > begin) {
+        response.data.insert(std::end(response.data), begin, end);
     }
-
 
     return response;
 }
@@ -529,4 +520,4 @@ static void serialize_invoke_id_and_cosem_descriptor(std::vector<uint8_t> &buffe
     buffer.push_back(req.index);
 }
 
-}
+} //namespace dlms

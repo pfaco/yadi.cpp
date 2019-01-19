@@ -92,8 +92,7 @@ struct CosemParameters {
     unsigned challenger_size = 8;
 };
 
-struct CosemContext
-{
+struct CosemContext {
     CosemContext() = default;
     CosemContext(CosemContext &&rhs) = default;
     uint16_t max_pdu_size = 0xFFFF;
@@ -127,13 +126,7 @@ struct Response {
     std::vector<uint8_t> data;
 };
 
-using SetRequest = Request;
-using SetResponse = Response;
-using GetRequest = Request;
-using GetResponse = Response;
-
-struct Cosem
-{
+struct Cosem {
     CosemContext context;
     CosemParameters parameters;
 };
@@ -146,7 +139,7 @@ auto serialize_action_request(Cosem &cosem, const Request& req) -> std::vector<u
 auto parse_aare(Cosem &cosem, const std::vector<uint8_t>& data) -> AssociationResult;
 auto parse_get_response(Cosem &cosem, const std::vector<uint8_t>& data) -> Response;
 
-struct invalid_cosem_frame : public std::exception {
+struct InvalidCosemFrame : public std::exception {
     const char* what() const noexcept override {
         return "invalid cosem frame";
     }

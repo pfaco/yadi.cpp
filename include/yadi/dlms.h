@@ -51,6 +51,10 @@ struct CosemWrapperClient {
         return AssociationResult::ACCEPTED == parse_aare(cosem, wrapper::parse(wrapper_params, serial.read()));
     }
 
+    bool disconnect(T& serial) {
+        return true;
+    }
+
     Response get_request(T& serial, const Request &req) {
         serial.write(wrapper::serialize(wrapper_params, serialize_get_request(cosem, req)));
         return parse_get_response(cosem, wrapper::parse(wrapper_params, serial.read()));
