@@ -1,6 +1,6 @@
 
 #include <yadi/parser.h>
-#include <exception>
+#include <stdexcept>
 
 namespace dlms
 {

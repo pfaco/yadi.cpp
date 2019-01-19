@@ -23,3 +23,4 @@ find_package(spdlog REQUIRED)
 ## Add demo target
 add_executable(yadi_demo ${yadi_demo_SRC})
 target_link_libraries(yadi_demo PUBLIC ssp)
+target_link_libraries(yadi_demo PRIVATE pthread)
