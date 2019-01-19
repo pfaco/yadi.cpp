@@ -26,3 +26,4 @@ target_include_directories(yadi_demo PRIVATE ../include)
 
 ## Add necessary libraries
 target_link_libraries(yadi_demo PUBLIC ssp)
+target_link_libraries(yadi_demo PRIVATE pthread)
