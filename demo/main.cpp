@@ -4,8 +4,8 @@
 #include "yadi/dlms.h"
 #include "yadi/emode.h"
 #include "yadi/parser.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/stdout_sinks.h"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_sinks.h>
 #include <sstream>
 #include <ssp/serial.h>
 

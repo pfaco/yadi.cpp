@@ -18,6 +18,7 @@ set(yadi_demo_SRC
 include_directories(../include)
 
 find_package(ssp REQUIRED)
+find_package(spdlog REQUIRED)
 
 ## Add demo target
 add_executable(yadi_demo ${yadi_demo_SRC})
