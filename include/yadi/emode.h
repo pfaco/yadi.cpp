@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <exception>
 
 namespace dlms
 {
@@ -38,8 +39,28 @@ namespace dlms
         _19200 = '6'
     };
 
-    auto emode_serialize(EmodeBaud baud) -> std::vector<uint8_t>;
-    auto emode_parse(std::vector<uint8_t>) -> EmodeBaud ;
+    struct EmodeError : public std::exception
+    {
+        const char* what() const noexcept override {
+            return "emode error";
+        }
+    };
+
+    template<typename T>
+    EmodeBaud emode_process(T& serial, EmodeBaud desired_baudrate)
+    {
+        auto ask_baud_frame = std::vector<uint8_t>{0x2f, 0x3f, 0x21, 0x0d, 0x0a}; //"/?!\r\n"
+        auto accept_baud_frame = std::vector<uint8_t>{0x06, 0x32, 0x00, 0x32, 0x0D, 0x0A};
+
+        serial.write(ask_baud_frame);
+        auto data = serial.read();
+        if (data.size() < 15 || data[data.size()-2] != 0x0D || data[data.size()-1] != 0x0A) {
+            throw EmodeError{};
+        }
+        serial.write(accept_baud_frame);
+        (void)serial.read();
+    }
+
 }
 
 #endif /* EMODE_H_ */

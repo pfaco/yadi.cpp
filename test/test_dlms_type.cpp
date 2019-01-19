@@ -1,6 +1,5 @@
 #include "catch.hpp"
 #include "yadi/parser.h"
-#include <iostream>
 
 TEST_CASE( "Write size works correctly", "[write_size]") {
     std::vector<uint8_t> buffer;
@@ -67,8 +66,4 @@ TEST_CASE( "Strings are correctly packed in dlms_type", "[from_string]" ) {
         expected.insert(expected.end(), str.begin(), str.end());
         REQUIRE( dlms::from_string(str) == expected );
     }
-}
-
-TEST_CASE ( "", "") {
-
 }

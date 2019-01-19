@@ -1,104 +1,70 @@
 ///@file
 
 #include <iostream>
-#include <iomanip>
-#include <memory>
-#include <algorithm>
-#include <chrono>
-#include "yadi/hdlc.h"
-#include "yadi/cosem.h"
+#include "yadi/dlms.h"
 #include "yadi/emode.h"
-#include "serial.h"
+#include "yadi/parser.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/stdout_sinks.h"
+#include <sstream>
+#include <ssp/serial.h>
 
-class SerialListener : public ssp::serial_listener
+auto console = spdlog::stdout_logger_mt("console");
+
+static void print_bytes(const std::string &msg, const std::vector<uint8_t> &buffer)
 {
-public:
-    void bytes_sent(std::vector<uint8_t> const& buffer) override {
-        print("TX: ", buffer);
-    }
-
-    void bytes_read(std::vector<uint8_t> const& buffer) override {
-        print("RX: ", buffer);
-    }
-
-private:
-    void print(std::string const& message, std::vector<uint8_t> const& buffer) {
-        std::cout << message;
-        std::cout << std::hex;
+    std::stringstream stream;
+        stream << msg;
         for (auto b : buffer) {
-            std::cout << std::setw(2) << std::setfill('0') << static_cast<unsigned>(b) << ' ';
+            stream << fmt::format("{:02X} ", b);
         }
-        std::cout << std::dec;
-        std::cout << std::endl;
-    }
-};
+        console->info(stream.str());
+}
 
-class Logger {
-public:
-    void error(std::string const& str) {
-        std::cout << "ERROR: " << str << std::endl;
-    }
-    void warning(std::string const& str) {
-        std::cout << "WARNING: " << str << std::endl;
-    }
-    void message(std::string const& str) {
-        std::cout << "MESSAGE: " << str << std::endl;
-    }
-};
-
-Logger logger;
-
-auto main() -> int
+int main(int argc, char * argv[])
 {
     try
     {
-        auto listener = std::make_shared<SerialListener>();
-        ssp::serial serial("COM8");
-        dlms::Hdlc hdlc{serial};
-        dlms::Cosem cosem{hdlc};
+        auto dlms_client = dlms::CosemHdlcClient<ssp::SerialPort>{};
+        auto serial = ssp::SerialPort("COM6");
+        serial.install_rx_listener([](auto buffer) {print_bytes("RX: ", buffer);});
+        serial.install_tx_listener([](auto buffer) {print_bytes("TX: ", buffer);});
+        serial.set_params(ssp::Baudrate::_9600, ssp::Parity::NONE, ssp::Databits::_8, ssp::Stopbits::_1, 2000);
 
-        serial.add_listener(listener);
-        serial.port().set_params(ssp::Baudrate::_300, ssp::Parity::EVEN, ssp::Databits::_7, ssp::Stopbits::_1, 3000);
-        hdlc.parameters().client_addr = 0x01;
-        hdlc.parameters().server_addr = 0x01;
+        console->info("initiating transaction..");
 
-        if (dlms::emode_connect(serial, dlms::EmodeBaud::_9600) != dlms::EmodeBaud::_9600) {
-            logger.error("emode.fail");
-            return -1;
+        if (!dlms_client.connect(serial)) {
+            console->error("fail to connect");
         }
 
-        serial.port().set_params(ssp::Baudrate::_9600, ssp::Parity::NONE, ssp::Databits::_8, ssp::Stopbits::_1, 3000);
-        if (!hdlc.connect()) {
-            logger.error("hdlc.connect.fail");
-            return -1;
-        }
-        if (cosem.connect() != dlms::AssociationResult::ACCEPTED) {
-            logger.error("cosem.connect.fail");
-            return -1;
+        auto response_serial_num = dlms_client.get_request(serial, {dlms::ClassID::DATA, {"0.0.96.1.0.254"}, 2, {}});
+        if (response_serial_num.result != dlms::DataAccessResult::SUCCESS) {
+            console->error("failure to read serial number: {}", static_cast<uint8_t>(response_serial_num.result));
+        } else {
+            auto serial_num = dlms::to_string(response_serial_num.data);
+            console->info("serial number = {}", serial_num);
         }
 
-        auto response = cosem.get_request({dlms::ClassID::CLOCK, {"0.0.1.0.0.255"}, 2});
-
-        if (response.result != dlms::DataAccessResult::SUCCESS) {
-            logger.error("dlms.get_request.error");
-            return -1;
+        auto response_active_energy = dlms_client.get_request(serial, {dlms::ClassID::REGISTER, {"1.0.1.8.0.255"}, 2, {}});
+        if (response_active_energy.result != dlms::DataAccessResult::SUCCESS) {
+            console->error("failure to read active energy: {}", static_cast<uint8_t>(response_serial_num.result));
+        } else {
+            auto active_fwd_energy = dlms::to_string(response_active_energy.data);
+            console->info("active energy = {}", active_fwd_energy);
         }
 
-        std::cout << "Data received: ";
-        for (auto &b : response.data) {
-            std::cout << static_cast<unsigned>(b) << ' ';
+        if (!dlms_client.disconnect(serial)) {
+            console->error("fail to disconnect");
         }
-        std::cout << std::endl;
-        hdlc.disconnect();
+
+        console->info("transaction finished");
 
     } catch (std::runtime_error const& e) {
-        std::cout << "runtime error" << std::endl;
-        std::cout << e.what() << std::endl;
+		console->error("runtime error: {}", e.what());
     } catch (std::exception const& e) {
-        std::cout << "exception" << std::endl;
-        std::cout << e.what() << std::endl;
+		console->error("exception: {}", e.what());
     } catch (...) {
-        std::cout << "unexpected exception" << std::endl;
+		console->error("unknown exception");
     }
 
     return 0;

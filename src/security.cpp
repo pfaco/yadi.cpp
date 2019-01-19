@@ -24,7 +24,7 @@
 #include <climits>
 #include <algorithm>
 
-std::independent_bits_engine<std::default_random_engine, CHAR_BIT, unsigned char> rng;
+std::independent_bits_engine<std::default_random_engine, CHAR_BIT, unsigned int> rng;
 
 namespace dlms {
 
@@ -47,5 +47,6 @@ namespace dlms {
             default:
                 throw std::invalid_argument("invalid authentication type");
         }
+		return {};
     }
 }

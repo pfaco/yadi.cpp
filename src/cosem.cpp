@@ -29,26 +29,34 @@ namespace dlms
 /**
  * COSEM Constants
  */
-enum CosemConstants : unsigned int
+enum AARQ : unsigned int
 {
-    BER_CLASS_APPLICATION = 0x40,
-    BER_CLASS_CONTEXT = 0x80,
-    BER_CONSTRUCTED = 0x20,
-    BER_OBJECT_IDENTIFIER = 0x06,
-    BER_BIT_STRING = 0x03,
-    BER_OCTET_STRING = 0x04,
-    BER_BASE = BER_CLASS_CONTEXT | BER_CONSTRUCTED,
-
+    AARQ_PROTOCOL_VERSION = 0,
     AARQ_APPLICATION_CONTEXT_NAME = 1,
     AARQ_CALLING_AP_TITLE = 6,
     AARQ_SENDER_ACSE_REQUIREMENTS = 10,
     AARQ_MECHANISM_NAME = 11,
     AARQ_CALLING_AUTHENTICATION_VALUE = 12,
     AARQ_USER_INFORMATION = 30,
+};
 
+enum AARE : unsigned int
+{
     AARE_APPLICATION_1 = 97,
     AARE_APP_CONTEXT_NAME = 1,
+};
 
+enum BER : unsigned int {
+    BER_CLASS_APPLICATION = 0x40,
+    BER_CLASS_CONTEXT = 0x80,
+    BER_CONSTRUCTED = 0x20,
+    BER_OBJECT_IDENTIFIER = 0x06,
+    BER_BIT_STRING = 0x03,
+    BER_OCTET_STRING = 0x04,
+};
+
+enum XDLMS : unsigned int
+{
     XDLMS_VERSION = 6,
     XDLMS_NO_CIPHERING_INITIATE_REQUEST = 1,
     XDLMS_NO_CIPHERING_INITIATE_RESPONSE = 8,
@@ -98,7 +106,7 @@ enum ConformanceBlock : unsigned int
     ACTION = 1u << 23u,
 };
 
-static auto serialize_request_normal(Request const& req, uint8_t tag) -> std::vector<uint8_t>;
+static void serialize_invoke_id_and_cosem_descriptor(std::vector<uint8_t> &buffer, Request const& req);
 
 /*
  * Application Association Request - AARQ
@@ -136,16 +144,21 @@ static auto serialize_request_normal(Request const& req, uint8_t tag) -> std::ve
  *
  * @return a std::vector<uint8_t> containing the encoded AARQ frame, based on the CosemParameters of this object
  */
-auto Cosem::serialize_aarq() -> std::vector<uint8_t>
+auto serialize_aarq(Cosem &cosem) -> std::vector<uint8_t>
 {
-    std::vector<uint8_t> buffer;
+	auto buffer = std::vector<uint8_t>{};
+    CosemParameters& params_ = cosem.parameters;
+
     buffer.push_back(BER_CONSTRUCTED | BER_CLASS_APPLICATION);
+    buffer.push_back(0); //aarq size, will be updated later
 
-    if (params_.authentication == AuthenticationMechanism::LOWEST) {
-        buffer.insert(buffer.end(), {0x80, 0x02, 0x07, 0x80});
-    }
+    //protocol-version             [0] IMPLICIT BIT STRING {version1 (0)} DEFAULT {version1}
+    buffer.push_back(BER_CLASS_CONTEXT | AARQ_PROTOCOL_VERSION);
+    buffer.push_back(2); //length
+    buffer.push_back(7); //number of unused bits in the bitstring
+    buffer.push_back(0x80);
 
-    //application-context-name [1]
+    //application-context-name     [1]          Application-context-name,
     buffer.push_back(BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_APPLICATION_CONTEXT_NAME);
     buffer.push_back(9);
     buffer.push_back(BER_OBJECT_IDENTIFIER);
@@ -156,36 +169,46 @@ auto Cosem::serialize_aarq() -> std::vector<uint8_t>
         buffer.insert(buffer.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x01, 0x03}); //LNAME_WITH_CIPHERING
     }
 
-    //calling-AP-title [6]
+    //called-AP-title              [2]          AP-title OPTIONAL,
+    //called-AE-qualifier          [3]          AE-qualifier OPTIONAL,
+    //called-AP-invocation-id      [4]          AP-invocation-identifier OPTIONAL,
+    //called-AE-invocation-id      [5]          AE-invocation-identifier OPTIONAL,
+
     if (params_.security != SecurityContext::NONE || params_.authentication == AuthenticationMechanism::HLS_GMAC) {
+        //calling-AP-title             [6]          AP-title OPTIONAL,
         buffer.push_back(BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_CALLING_AP_TITLE);
-        buffer.push_back(params_.system_title.size() + 2);
+        buffer.push_back(static_cast<uint8_t>(params_.system_title.size() + 2));
         buffer.push_back(BER_OBJECT_IDENTIFIER);
-        buffer.push_back(params_.system_title.size());
+        buffer.push_back(static_cast<uint8_t>(params_.system_title.size()));
         buffer.insert(buffer.end(), params_.system_title.begin(), params_.system_title.end());
     }
 
+    //calling-AE-qualifier         [7]          AE-qualifier OPTIONAL,
+    //calling-AP-invocation-id     [8]          AP-invocation-identifier OPTIONAL,
+    //calling-AE-invocation-id     [9]          AE-invocation-identifier OPTIONAL,
+
     if (params_.authentication != AuthenticationMechanism::LOWEST) {
-        //sender-acse-requirements [10]
+        //sender-acse-requirements     [10] IMPLICIT ACSE-requirements OPTIONAL,
         buffer.push_back(BER_CLASS_CONTEXT | AARQ_SENDER_ACSE_REQUIREMENTS);
         buffer.push_back(2);
         buffer.push_back(BER_BIT_STRING | BER_OCTET_STRING);
         buffer.push_back(0x80);
 
-       //mechanism-name [11]
+        //mechanism-name               [11] IMPLICIT Mechanism-name OPTIONAL,
         buffer.push_back(BER_CLASS_CONTEXT | AARQ_MECHANISM_NAME);
         buffer.push_back(7);
         buffer.insert(buffer.end(), {0x60, 0x85, 0x74, 0x05, 0x08, 0x02});
         buffer.push_back(static_cast<uint8_t>(params_.authentication));
 
-        //calling-authentication-value [12]
         if (params_.authentication == AuthenticationMechanism::LLS) {
+            //calling-authentication-value [12] EXPLICIT Authentication-value OPTIONAL,
             buffer.push_back(BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_CALLING_AUTHENTICATION_VALUE);
-            buffer.push_back(params_.secret.size() + 2);
+            buffer.push_back(static_cast<uint8_t>(params_.secret.size() + 2));
             buffer.push_back(BER_CLASS_CONTEXT);
-            buffer.push_back(params_.secret.size());
+            buffer.push_back(static_cast<uint8_t>(params_.secret.size()));
             buffer.insert(buffer.end(), params_.secret.begin(), params_.secret.end());
         } else {
+            //calling-authentication-value [12] EXPLICIT Authentication-value OPTIONAL,
             buffer.push_back(BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_CALLING_AUTHENTICATION_VALUE);
             buffer.push_back(static_cast<uint8_t>(params_.challenger_size + 2));
             buffer.push_back(BER_CLASS_CONTEXT);
@@ -194,8 +217,10 @@ auto Cosem::serialize_aarq() -> std::vector<uint8_t>
         }
     }
 
+    //implementation-information   [29] IMPLICIT Implementation-data OPTIONAL,
+
     //Conformance block
-    uint32_t conformance_block = 0;
+	auto conformance_block = uint32_t{ 0U };
     conformance_block |= ConformanceBlock::GET;
     conformance_block |= ConformanceBlock::SET;
     conformance_block |= ConformanceBlock::ACTION;
@@ -204,25 +229,27 @@ auto Cosem::serialize_aarq() -> std::vector<uint8_t>
     conformance_block |= ConformanceBlock::BLOCK_TRANSFER_WITH_SET_OR_WRITE;
     conformance_block |= ConformanceBlock::BLOCK_TRANSFER_WITH_ACTION;
 
-    //user-information [30]
-    buffer.push_back(BER_CONSTRUCTED | AARQ_USER_INFORMATION);
-    buffer.push_back(13);
+    //user-information             [30] EXPLICIT Association-information OPTIONAL
+    buffer.push_back(BER_CLASS_CONTEXT | BER_CONSTRUCTED | AARQ_USER_INFORMATION);
+    buffer.push_back(15U);
     buffer.push_back(BER_OCTET_STRING);
-    buffer.push_back(11);
+    buffer.push_back(13U);
     buffer.push_back(XDLMS_NO_CIPHERING_INITIATE_REQUEST);
-    buffer.push_back(0); //Dedicated key
-    buffer.push_back(0); //Response-allowed
-    buffer.push_back(0); //Proposed quality of service
+    buffer.push_back(0U); //Dedicated key
+    buffer.push_back(0U); //Response-allowed
+    buffer.push_back(0U); //Proposed quality of service
     buffer.push_back(XDLMS_VERSION);
     buffer.push_back(ConformanceBlock::TAG);
-    buffer.push_back(4); //conformance block size
-    buffer.push_back((uint8_t)conformance_block);
-    buffer.push_back((uint8_t)(conformance_block >> 8u));
-    buffer.push_back((uint8_t)(conformance_block >> 16u));
-    buffer.push_back((uint8_t)(conformance_block >> 24u));
+    buffer.push_back(4U); //conformance block size
+    buffer.push_back(static_cast<uint8_t>(conformance_block >> 24U));
+    buffer.push_back(static_cast<uint8_t>(conformance_block >> 16U));
+    buffer.push_back(static_cast<uint8_t>(conformance_block >> 8U));
+    buffer.push_back(static_cast<uint8_t>(conformance_block));
+    buffer.push_back(0xFFU); //max-pdu size MSB
+    buffer.push_back(0xFFU); //max-pdu size LSB
 
     // Add correct frame size
-    buffer[1] = (uint8_t)(buffer.size() - 2);
+    buffer[1] = static_cast<uint8_t>(buffer.size() - 2);
 
     return buffer;
 }
@@ -256,12 +283,18 @@ auto Cosem::serialize_aarq() -> std::vector<uint8_t>
  *     attribute-descriptor-list       SEQUENCE OF Cosem-Attribute-Descriptor-With-Selection
  * }
  *
- * @param req
- * @return
+ * @param req a Request object reference containing the request data
+ * @return the serialized request
  */
-auto Cosem::serialize_get(Request const& req) -> std::vector<uint8_t>
+auto serialize_get_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>
 {
-    return serialize_request_normal(req, XDLMS_NO_CIPHERING_GET_REQUEST);
+	auto buffer = std::vector<uint8_t>{};
+    buffer.push_back(XDLMS_NO_CIPHERING_GET_REQUEST);
+    buffer.push_back(1);
+    serialize_invoke_id_and_cosem_descriptor(buffer, req);
+    buffer.push_back(req.data.empty() ? static_cast<uint8_t>(0U) : static_cast<uint8_t>(1U));
+    buffer.insert(buffer.end(), req.data.begin(), req.data.end());
+    return buffer;
 }
 
 /**
@@ -315,9 +348,15 @@ auto Cosem::serialize_get(Request const& req) -> std::vector<uint8_t>
  * @param req
  * @return
  */
-auto Cosem::serialize_set(Request const& req) -> std::vector<uint8_t>
+auto serialize_set_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>
 {
-    return serialize_request_normal(req, XDLMS_NO_CIPHERING_SET_REQUEST);
+	auto buffer = std::vector<uint8_t>{};
+    buffer.push_back(XDLMS_NO_CIPHERING_SET_REQUEST);
+    buffer.push_back(1);
+    serialize_invoke_id_and_cosem_descriptor(buffer, req);
+    buffer.push_back(0);
+    buffer.insert(buffer.end(), req.data.begin(), req.data.end());
+    return buffer;
 }
 
 /**
@@ -376,9 +415,15 @@ auto Cosem::serialize_set(Request const& req) -> std::vector<uint8_t>
  * @param req
  * @return
  */
- auto Cosem::serialize_act(Request const& req) -> std::vector<uint8_t>
+ auto serialize_action_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>
  {
-     return serialize_request_normal(req, XDLMS_NO_CIPHERING_ACTION_REQUEST);
+	 auto buffer = std::vector<uint8_t>{};
+     buffer.push_back(XDLMS_NO_CIPHERING_ACTION_REQUEST);
+     buffer.push_back(1);
+     serialize_invoke_id_and_cosem_descriptor(buffer, req);
+     buffer.push_back(req.data.empty() ? static_cast<uint8_t>(0U) : static_cast<uint8_t>(1U));
+     buffer.insert(buffer.end(), req.data.begin(), req.data.end());
+     return buffer;
  }
 
 /**
@@ -415,9 +460,9 @@ auto Cosem::serialize_set(Request const& req) -> std::vector<uint8_t>
  * @param data : a std::vector<uint8_t> with the octet-string representation of the AARE frame
  * @return an AssociationResult with the result of the propposed association
  */
-auto Cosem::parse_aare(std::vector<uint8_t> const& data) -> AssociationResult
+auto parse_aare(Cosem &cosem, const std::vector<uint8_t>& data) -> AssociationResult
 {
-
+    return AssociationResult::ACCEPTED;
 }
 
 /**
@@ -425,9 +470,26 @@ auto Cosem::parse_aare(std::vector<uint8_t> const& data) -> AssociationResult
  * @param data
  * @return
  */
-auto Cosem::parse_response(std::vector<uint8_t> const& data) -> Response
+auto parse_get_response(Cosem &cosem, const std::vector<uint8_t>& data) -> Response
 {
+    if (data.size() < 4 || data[0] != XDLMS_NO_CIPHERING_GET_RESPONSE || data[1] != 0x01) {
+        throw invalid_cosem_frame{};
+    }
 
+    Response response;
+
+    switch (data[3]) {
+    case 0:
+        response.result = DataAccessResult::SUCCESS;
+        response.data.insert(std::end(response.data), std::begin(data) + 4, std::end(data));
+        break;
+    default:
+        response.result = DataAccessResult::OTHER_REASON;
+        break;
+    }
+
+
+    return response;
 }
 
 /**
@@ -458,19 +520,13 @@ auto Cosem::parse_response(std::vector<uint8_t> const& data) -> Response
  * @param tag
  * @return
  */
-static auto serialize_request_normal(Request const& req, uint8_t tag) -> std::vector<uint8_t>
+static void serialize_invoke_id_and_cosem_descriptor(std::vector<uint8_t> &buffer, Request const& req)
 {
-    std::vector<uint8_t> buffer;
-    buffer.push_back(tag);
-    buffer.push_back(1);
     buffer.push_back(static_cast<uint8_t>(XDLMS_HIGH_PRIORITY | XDLMS_SERVICE_CONFIRMED | XDLMS_INVOKE_ID));
     buffer.push_back(static_cast<uint8_t>(static_cast<uint16_t>(req.class_id) >> 8U));
     buffer.push_back(static_cast<uint8_t>(req.class_id));
     buffer.insert(buffer.end(), req.logical_name.begin(), req.logical_name.end());
     buffer.push_back(req.index);
-    buffer.push_back(req.data.empty() ? static_cast<uint8_t>(0U) : static_cast<uint8_t>(1U));
-    buffer.insert(buffer.end(), req.data.begin(), req.data.end());
-    return buffer;
 }
 
 }

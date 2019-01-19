@@ -8,16 +8,16 @@ set(yadi_demo_SRC
         ../src/cosem.cpp
         ../src/emode.cpp
         ../src/hdlc.cpp
+        ../src/hdlc_frame.cpp
         ../src/wrapper.cpp
         ../src/security.cpp
         ../src/data_type.cpp
         ../src/logical_name.cpp)
 
-# import library target 'ssp'
-find_package(ssp REQUIRED)
-
 ## Include headers for test target
 include_directories(../include)
+
+find_package(ssp REQUIRED)
 
 ## Add demo target
 add_executable(yadi_demo ${yadi_demo_SRC})

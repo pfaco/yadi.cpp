@@ -27,36 +27,38 @@
 
 namespace dlms
 {
+namespace hdlc
+{
 
 /**
  * This class holds the parameters of a hdlc object
  */
 struct HdlcParameters
 {
-    uint16_t max_information_field_length_tx = 128;
-    uint16_t max_information_field_length_rx = 128;
+    uint8_t client_address = 1;
     uint8_t server_address_len = 4;
     uint16_t server_logical_address = 1;
     uint16_t server_physical_address = 0x3FFF;
-    uint8_t client_address = 1;
+    uint16_t max_information_field_length_tx = 128;
+    uint16_t max_information_field_length_rx = 128;
 };
 
-/**
- * HDLC class
- */
-class Hdlc
+struct HdlcContext
 {
-    HdlcParameters params_;
-public:
-    explicit Hdlc() = default;
-    explicit Hdlc(HdlcParameters &params) : params_{params} {}
-    auto parameters() -> HdlcParameters& {return params_; }
-    auto serialize_snrm() -> std::vector<uint8_t>;
-    auto serialize_disc() -> std::vector<uint8_t>;
-    auto serialize(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
-    auto parse(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
+    uint8_t rx_sss = 0;
+    uint8_t tx_sss = 0;
+    uint16_t max_information_field_length_tx = 128;
+    uint16_t max_information_field_length_rx = 128;
 };
 
-}
+auto serialize_snrm(const HdlcParameters &params) -> std::vector<uint8_t>;
+auto serialize_disc(const HdlcParameters &params) -> std::vector<uint8_t>;
+auto serialize(const HdlcParameters &params, HdlcContext &ctx, std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
+bool parse_snrm_response(const HdlcParameters &params, HdlcContext &ctx, const std::vector<uint8_t> &buffer);
+bool parse_disc_response(const std::vector<uint8_t> &buffer);
+auto parse(const HdlcParameters &params, HdlcContext &ctx, const std::vector<uint8_t> &buffer) -> std::vector<uint8_t>;
+
+} //namespace hdlc
+} //namespace dlms
 
 #endif /* HDLC_H_ */

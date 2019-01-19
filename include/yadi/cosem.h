@@ -81,19 +81,32 @@ enum class ClassID : uint16_t {
 };
 
 struct CosemParameters {
+    CosemParameters() = default;
+    CosemParameters(CosemParameters &&rhs) = default;
     AuthenticationMechanism authentication = AuthenticationMechanism::LOWEST;
     SecurityContext security = SecurityContext::NONE;
     std::array<uint8_t,8> system_title{0};
     std::array<uint8_t,8> secret{0};
     std::array<uint8_t,16> ak{0};
-    std::array<uint8_t,16> ek{0};
+    std::array<uint8_t,16> guek{0};
     unsigned challenger_size = 8;
+};
+
+struct CosemContext
+{
+    CosemContext() = default;
+    CosemContext(CosemContext &&rhs) = default;
+    uint16_t max_pdu_size = 0xFFFF;
+    uint32_t invocation_counter = 0;
+    std::array<uint8_t,8> client_system_title{0};
+    std::array<uint8_t,16> dek[16]; //dedicated encryption key
 };
 
 class LogicalName {
 public:
     LogicalName(std::string const& str);
     LogicalName(std::initializer_list<uint8_t> const& initializer_list);
+    LogicalName(const LogicalName &rhs);
     ~LogicalName();
     std::array<uint8_t,6>::const_iterator begin() const;
     std::array<uint8_t,6>::const_iterator end() const;
@@ -103,31 +116,40 @@ private:
 };
 
 struct Request {
-    ClassID const class_id;
-    LogicalName const logical_name;
-    uint8_t const index;
-    std::vector<uint8_t> const data;
-    Request(Request&& rhs) = default;
+    ClassID class_id;
+    LogicalName logical_name;
+    uint8_t index;
+    std::vector<uint8_t> data;
 };
 
 struct Response {
-    DataAccessResult const result;
+    DataAccessResult result;
     std::vector<uint8_t> data;
-    Response(Response&& rhs) = default;
 };
 
-class Cosem {
-    CosemParameters params_;
-public:
-    explicit Cosem() = default;
-    explicit Cosem(CosemParameters params) : params_{std::move(params)} {}
-    auto parameters() -> CosemParameters& { return params_; };
-    auto serialize_aarq() -> std::vector<uint8_t>;
-    auto serialize_get(Request const& req) -> std::vector<uint8_t>;
-    auto serialize_set(Request const& req) -> std::vector<uint8_t>;
-    auto serialize_act(Request const& req) -> std::vector<uint8_t>;
-    auto parse_aare(std::vector<uint8_t> const& data) -> AssociationResult;
-    auto parse_response(std::vector<uint8_t> const& data) -> Response;
+using SetRequest = Request;
+using SetResponse = Response;
+using GetRequest = Request;
+using GetResponse = Response;
+
+struct Cosem
+{
+    CosemContext context;
+    CosemParameters parameters;
+};
+
+auto serialize_aarq(Cosem &cosem) -> std::vector<uint8_t>;
+auto serialize_get_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>;
+auto serialize_set_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>;
+auto serialize_action_request(Cosem &cosem, const Request& req) -> std::vector<uint8_t>;
+
+auto parse_aare(Cosem &cosem, const std::vector<uint8_t>& data) -> AssociationResult;
+auto parse_get_response(Cosem &cosem, const std::vector<uint8_t>& data) -> Response;
+
+struct invalid_cosem_frame : public std::exception {
+    const char* what() const noexcept override {
+        return "invalid cosem frame";
+    }
 };
 
 }

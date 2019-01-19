@@ -6,8 +6,14 @@ project(yadi_dlms_test
 ## Sources
 set(yadi_test_SRC
         ../src/data_type.cpp
+        ../src/cosem.cpp
+        ../src/hdlc.cpp
+        ../src/hdlc_frame.cpp
+        ../src/logical_name.cpp
+        ../src/security.cpp
         catchmain.cpp
-        test_dlms_type.cpp)
+        test_dlms_type.cpp
+        test_cosem.cpp test_hdlc.cpp)
 
 include_directories(../include)
 

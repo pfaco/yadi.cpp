@@ -27,6 +27,8 @@
 
 namespace dlms
 {
+namespace wrapper
+{
 
 struct WrapperParameters
 {
@@ -34,17 +36,10 @@ struct WrapperParameters
     uint16_t w_port_destination = 0x01;
 };
 
-class Wrapper
-{
-    WrapperParameters params_;
-public:
-    explicit Wrapper() = default;
-    explicit Wrapper(WrapperParameters &params) : params_{params} {}
-    auto parameters() -> WrapperParameters& { return params_; }
-    void serialize(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
-    auto parse(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
-};
+auto serialize(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>;
+auto parse(const WrapperParameters &params, const std::vector<uint8_t> &data) -> std::vector<uint8_t>;
 
-}
+} //namespace wrapper
+} //namespace dlms
 
 #endif /* WRAPPER_H_ */
