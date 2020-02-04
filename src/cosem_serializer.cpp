@@ -1,13 +1,27 @@
 #include <yadi/cosem_serializer.h>
-#include <yadi/data_tag.h>
-
+#include <yadi/cosem_data_tag.h>
+#include <iostream>
 namespace dlms
 {
 
 namespace
 {
     static void write_size(ByteOutputStream &os, size_t size) {
-
+		if (size <= 0x80) {
+			os.write_u8(static_cast<uint8_t>(size));
+		}
+		else if (size <= 0xFF) {
+			os.write_u8(0x81);
+			os.write_u8(static_cast<uint8_t>(size));
+		}
+		else if (size <= 0xFFFF) {
+			os.write_u8(0x82);
+			os.write_u16(static_cast<uint16_t>(size));
+		}
+		else {
+			os.write_u8(0x84);
+			os.write_u32(static_cast<uint32_t>(size));
+		}
     }
 }
 
@@ -95,6 +109,29 @@ void CosemSerializer::boolean(bool value) {
 void CosemSerializer::enumeration(uint8_t value) {
 	os.write_u8(static_cast<uint8_t>(DataTag::ENUM));
 	os.write_u8(value);
+}
+
+void CosemSerializer::nulldata() {
+	os.write_u8(0x00);
+}
+
+void CosemSerializer::optional() {
+	os.write_u8(0x01);
+}
+
+void CosemSerializer::invoke_id_and_priority(InvokeId id, Priority priority) {
+	os.write_u8(0xC8);
+}
+
+void CosemSerializer::attribute_descriptor(const CosemAttributeDescriptor &att) {
+	os.write_u16(att.class_id);
+	os.write_buffer(att.logical_name.data(), att.logical_name.size());
+	os.write_i8(att.index);
+}
+
+void CosemSerializer::request(RequestTag request_tag, RequestType request_type) {
+	os.write_u8(static_cast<uint8_t>(request_tag));
+	os.write_u8(static_cast<uint8_t>(request_type));
 }
 
 }

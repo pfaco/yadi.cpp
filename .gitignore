@@ -40,3 +40,5 @@
 
 # CmakeFiles
 CmakeFiles/*
+/.vs
+/demo/build

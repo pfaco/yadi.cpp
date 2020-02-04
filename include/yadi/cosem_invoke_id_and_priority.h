@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstdint.h>
+#include <cstdint>
 
 namespace dlms
 {
 
-class InvokeId : uint8_t
+class InvokeId
 {
 
 };

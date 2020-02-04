@@ -66,6 +66,9 @@ auto Cosem::serialize_aarq() -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buffer;
     CosemSerializer serializer(buffer);
+
+    
+
     buffer.push_back(BER_CONSTRUCTED | BER_CLASS_APPLICATION);
 
     if (params_.authentication == AuthenticationMechanism::LOWEST) {

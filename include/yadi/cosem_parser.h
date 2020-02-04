@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <yadi/cosem_response.h>
 
 namespace dlms
 {
@@ -87,6 +88,8 @@ public:
 
     uint8_t enumeration();
 
+    void raw_data(std::vector<uint8_t> &buffer);
+
 private:
     ByteInputStream is;
 };
@@ -97,18 +100,27 @@ class CosemParserError : std::exception {
     }
 };
 
-void parse(CosemParser &parser, int8_t &value) { value = parser.int8(); }
-void parse(CosemParser &parser, int16_t &value) { value = parser.int16(); }
-void parse(CosemParser &parser, int32_t &value) { value = parser.int32(); }
-void parse(CosemParser &parser, int64_t &value) { value = parser.int64(); }
-void parse(CosemParser &parser, uint8_t &value) { value = parser.uint8(); }
-void parse(CosemParser &parser, uint16_t &value) { value = parser.uint16(); }
-void parse(CosemParser &parser, uint32_t &value) { value = parser.uint32(); }
-void parse(CosemParser &parser, uint64_t &value) { value = parser.uint64(); }
-void parse(CosemParser &parser, float &value) { value = parser.float32(); }
-void parse(CosemParser &parser, double &value) { value = parser.float64(); }
-void parse(CosemParser &parser, bool &value) { value = parser.boolean(); }
-void parse(CosemParser &parser, std::string &value) { value = parser.visible_string(); }
-void parse(CosemParser &parser, std::vector<uint8_t> &value) { value = parser.octet_string(); }
+static inline void parse(CosemParser &parser, int8_t &value) { value = parser.int8(); }
+static inline void parse(CosemParser &parser, int16_t &value) { value = parser.int16(); }
+static inline void parse(CosemParser &parser, int32_t &value) { value = parser.int32(); }
+static inline void parse(CosemParser &parser, int64_t &value) { value = parser.int64(); }
+static inline void parse(CosemParser &parser, uint8_t &value) { value = parser.uint8(); }
+static inline void parse(CosemParser &parser, uint16_t &value) { value = parser.uint16(); }
+static inline void parse(CosemParser &parser, uint32_t &value) { value = parser.uint32(); }
+static inline void parse(CosemParser &parser, uint64_t &value) { value = parser.uint64(); }
+static inline void parse(CosemParser &parser, float &value) { value = parser.float32(); }
+static inline void parse(CosemParser &parser, double &value) { value = parser.float64(); }
+static inline void parse(CosemParser &parser, bool &value) { value = parser.boolean(); }
+static inline void parse(CosemParser &parser, std::string &value) { value = parser.visible_string(); }
+static inline void parse(CosemParser &parser, std::vector<uint8_t> &value) { value = parser.octet_string(); }
+
+static inline void parse(CosemParser &parser, RawResponseBody &value) {
+    parser.raw_data(value.value);
+}
+
+template<typename Body = RawResponseBody>
+void parse(CosemParser &parser, GetResponse<Body> &resp) {
+    uint8_t invoke_id_and_priority = parser.uint8();
+}
 
 }
