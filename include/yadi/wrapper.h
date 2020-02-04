@@ -34,12 +34,12 @@ struct WrapperParameters
     uint16_t w_port_destination = 0x01;
 };
 
-class Wrapper
+class WrapperClient
 {
     WrapperParameters params_;
 public:
-    explicit Wrapper() = default;
-    explicit Wrapper(WrapperParameters &params) : params_{params} {}
+    explicit WrapperClient() = default;
+    explicit WrapperClient(WrapperParameters &params) : params_{params} {}
     auto parameters() -> WrapperParameters& { return params_; }
     void serialize(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;
     auto parse(std::vector<uint8_t> const& data) -> std::vector<uint8_t>;

@@ -17,86 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-///@file
-
 #include <yadi/cosem.h>
 #include <yadi/parser.h>
 #include "security.h"
 
 namespace dlms
 {
-
-/**
- * COSEM Constants
- */
-enum CosemConstants : unsigned int
-{
-    BER_CLASS_APPLICATION = 0x40,
-    BER_CLASS_CONTEXT = 0x80,
-    BER_CONSTRUCTED = 0x20,
-    BER_OBJECT_IDENTIFIER = 0x06,
-    BER_BIT_STRING = 0x03,
-    BER_OCTET_STRING = 0x04,
-    BER_BASE = BER_CLASS_CONTEXT | BER_CONSTRUCTED,
-
-    AARQ_APPLICATION_CONTEXT_NAME = 1,
-    AARQ_CALLING_AP_TITLE = 6,
-    AARQ_SENDER_ACSE_REQUIREMENTS = 10,
-    AARQ_MECHANISM_NAME = 11,
-    AARQ_CALLING_AUTHENTICATION_VALUE = 12,
-    AARQ_USER_INFORMATION = 30,
-
-    AARE_APPLICATION_1 = 97,
-    AARE_APP_CONTEXT_NAME = 1,
-
-    XDLMS_VERSION = 6,
-    XDLMS_NO_CIPHERING_INITIATE_REQUEST = 1,
-    XDLMS_NO_CIPHERING_INITIATE_RESPONSE = 8,
-    XDLMS_NO_CIPHERING_GET_REQUEST = 192,
-    XDLMS_NO_CIPHERING_SET_REQUEST = 193,
-    XDLMS_NO_CIPHERING_ACTION_REQUEST = 195,
-    XDLMS_NO_CIPHERING_GET_RESPONSE = 196,
-    XDLMS_NO_CIPHERING_SET_RESPONSE = 197,
-    XDLMS_NO_CIPHERING_ACTION_RESPONSE = 199,
-
-    XDLMS_GLOBAL_CIPHERING_INITIATE_REQUEST = 33,
-    XDLMS_GLOBAL_CIPHERING_INITIATE_RESPONSE = 40,
-    XDLMS_GLOBAL_CIPHERING_GET_REQUEST = 200,
-    XDLMS_GLOBAL_CIPHERING_SET_REQUEST = 201,
-    XDLMS_GLOBAL_CIPHERING_ACTION_REQUEST = 203,
-    XDLMS_GLOBAL_CIPHERING_GET_RESPONSE = 204,
-    XDLMS_GLOBAL_CIPHERING_SET_RESPONSE = 205,
-    XDLMS_GLOBAL_CIPHERING_ACTION_RESPONSE = 207,
-
-    XDLMS_HIGH_PRIORITY = 128,
-    XDLMS_SERVICE_CONFIRMED = 64,
-    XDLMS_INVOKE_ID = 1
-};
-
-/**
- * Conformance block TAG and bits
- */
-enum ConformanceBlock : unsigned int
-{
-    TAG = 95,
-    //READ = 1u << 3u,
-    //WRITE = 1u << 4u,
-    //UNCONFIRMED_WRITE = 1u << 5u,
-    //ATTRIBUTE_0_SUPPORTED_WITH_SET = 1u << 8u,
-    //PRIORITY_MGMT_SUPPORTED = 1u << 9u,
-    //ATTRIBUTE_0_SUPPORTED_WITH_GET = 1u << 10u,
-    BLOCK_TRANSFER_WITH_GET_OR_READ = 1u << 11u,
-    BLOCK_TRANSFER_WITH_SET_OR_WRITE = 1u << 12u,
-    BLOCK_TRANSFER_WITH_ACTION = 1u << 13u,
-    //MULTIPLE_REFERENCES = 1u << 14u,
-    //INFORMATION_REPORT = 1u << 15u,
-    //PARAMETERIZED_ACCESS = 1u << 18u,
-    GET = 1u << 19u,
-    SET = 1u << 20u,
-    SELECTIVE_ACCESS = 1u << 21u,
-    //EVENT_NOTIFICATION = 1u << 22u,
-    ACTION = 1u << 23u,
-};
 
 static auto serialize_request_normal(Request const& req, uint8_t tag) -> std::vector<uint8_t>;
 
@@ -139,6 +65,7 @@ static auto serialize_request_normal(Request const& req, uint8_t tag) -> std::ve
 auto Cosem::serialize_aarq() -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buffer;
+    CosemSerializer serializer(buffer);
     buffer.push_back(BER_CONSTRUCTED | BER_CLASS_APPLICATION);
 
     if (params_.authentication == AuthenticationMechanism::LOWEST) {

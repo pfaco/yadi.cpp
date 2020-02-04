@@ -44,12 +44,12 @@ struct HdlcParameters
 /**
  * HDLC class
  */
-class Hdlc
+class HdlcClient
 {
     HdlcParameters params_;
 public:
-    explicit Hdlc() = default;
-    explicit Hdlc(HdlcParameters &params) : params_{params} {}
+    explicit HdlcClient() = default;
+    explicit HdlcClient(HdlcParameters &params) : params_{params} {}
     auto parameters() -> HdlcParameters& {return params_; }
     auto serialize_snrm() -> std::vector<uint8_t>;
     auto serialize_disc() -> std::vector<uint8_t>;
