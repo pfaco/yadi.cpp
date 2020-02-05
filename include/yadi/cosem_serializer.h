@@ -5,6 +5,7 @@
 #include <yadi/cosem_invoke_id_and_priority.h>
 #include <yadi/cosem_attribute_descriptor.h>
 #include <yadi/cosem_request.h>
+#include <yadi/cosem_aarq.h>
 
 namespace dlms
 {
@@ -43,6 +44,8 @@ public:
     void invoke_id_and_priority(InvokeIdAndPriority &InvokeIdAndPriority);
     void attribute_descriptor(const CosemAttributeDescriptor &att);
     void request(RequestTag request_tag, RequestType request_type);
+
+    void aarq(const ApplicationAssociationRequest &aarq);
 
 private:
     struct impl;

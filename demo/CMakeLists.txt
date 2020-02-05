@@ -9,6 +9,12 @@ add_executable(
         ../src/cosem_serializer.cpp
         ../src/cosem_parser.cpp
 )
+set_target_properties(
+        yadi_demo
+    
+    PROPERTIES
+        CXX_STANDARD 17
+)
 
 target_include_directories(
         yadi_demo

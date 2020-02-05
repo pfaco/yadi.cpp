@@ -167,12 +167,11 @@ bool CosemParser::optional() {
 }
 
 void CosemParser::parse_by_index(const std::unordered_map<int, std::function<void(void)>> &callback_map) {
-    int index = (int)impl_->is.read_u8();
-    auto callback = callback_map.find(index);
-    if (callback== callback_map.end()) {
+    if (auto callback = callback_map.find(impl_->is.read_u8()); callback != callback_map.end()) {
+        callback->second();
+    } else {
         throw CosemParserError{};
     }
-    callback->second();
 }
 
 }

@@ -145,4 +145,9 @@ void CosemSerializer::request(RequestTag request_tag, RequestType request_type) 
 	impl_->os.write_u8(static_cast<uint8_t>(request_type));
 }
 
+void CosemSerializer::aarq(const ApplicationAssociationRequest &aarq)
+{
+
+}
+
 }
