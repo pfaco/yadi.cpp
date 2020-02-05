@@ -2,68 +2,17 @@
 
 #include <vector>
 #include <string>
+#include <functional>
 #include <yadi/cosem_response.h>
-
+#include <unordered_map>
 namespace dlms
 {
-
-class ByteInputStream
-{
-public:
-    explicit ByteInputStream(const std::vector<uint8_t> &buffer) : buffer_{buffer}, index_{0} {}
-    
-    uint8_t read_u8() {
-        return buffer_[index_++];
-    }
-    
-    uint16_t read_u16() {
-        return static_cast<uint16_t>((static_cast<uint16_t>(read_u8()) << 8U) | read_u8());
-    }
-
-    uint32_t read_u32() {
-        return static_cast<uint32_t>((static_cast<uint32_t>(read_u16()) << 16U) | read_u16());
-    }
-
-    uint64_t read_u64() {
-        return static_cast<uint64_t>((static_cast<uint64_t>(read_u32()) << 32U) | read_u32());
-    }
-
-    int8_t read_i8() {
-        return static_cast<int8_t>(read_u8());
-    }
-    
-    int16_t read_i16() {
-        return static_cast<int16_t>(read_u16());
-    }
-
-    int32_t read_i32() {
-        return static_cast<int32_t>(read_u32());
-    }
-
-    int64_t read_i64() {
-        return static_cast<int64_t>(read_u64());
-    }
-
-    size_t available() {
-        return index_ < buffer_.size() ? buffer_.size() - index_ : 0;
-    }
-
-    template<typename Iterator>
-    void read_buffer(Iterator it, size_t size) {
-        while (size--) {
-            *it++ = read_u8();
-        }
-    }
-
-private:
-    const std::vector<uint8_t> &buffer_;
-    size_t index_;
-};
 
 class CosemParser
 {
 public:
-    explicit CosemParser(const std::vector<uint8_t> &buffer) : is{ByteInputStream{buffer}} {}
+    explicit CosemParser(const std::vector<uint8_t> &buffer);
+    virtual ~CosemParser();
 
     int8_t int8();
     int16_t int16();
@@ -88,10 +37,18 @@ public:
 
     uint8_t enumeration();
 
+    uint8_t raw_uint8();
     void raw_data(std::vector<uint8_t> &buffer);
 
+    void check_response(ResponseTag tag, ResponseType type);
+
+    bool optional();
+
+    void parse_by_index(const std::unordered_map<int, std::function<void(void)>> &callback);
+
 private:
-    ByteInputStream is;
+    struct impl;
+    std::unique_ptr<impl> impl_;
 };
 
 class CosemParserError : std::exception {
@@ -120,7 +77,42 @@ static inline void parse(CosemParser &parser, RawResponseBody &value) {
 
 template<typename Body = RawResponseBody>
 void parse(CosemParser &parser, GetResponse<Body> &resp) {
-    uint8_t invoke_id_and_priority = parser.uint8();
+    parser.check_response(ResponseTag::GET_RESPONSE, ResponseType::NORMAL);
+    resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
+    parser.parse_by_index({
+        {0x00, [&] {
+            resp.result = DataAccessResult::SUCCESS;
+            resp.body = Body{};
+            parse(parser, resp.body);
+        }},
+        {0x01, [&] {
+            resp.result = make_data_access_result(parser.raw_uint8());
+        }}
+    });
+}
+
+static inline void parse(CosemParser &parser, SetResponse &resp) {
+    parser.check_response(ResponseTag::SET_RESPONSE, ResponseType::NORMAL);
+    resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
+    resp.result = make_data_access_result(parser.raw_uint8());
+}
+
+template<typename Body = RawResponseBody>
+void parse(CosemParser &parser, ActionResponse<Body> &resp) {
+    parser.check_response(ResponseTag::ACTION_RESPONSE, ResponseType::NORMAL);
+    resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
+    resp.result = make_action_access_result(parser.raw_uint8());
+    if (parser.optional()) {
+        parser.parse_by_index({
+            {0x00, [&](){
+                resp.data_access_result = DataAccessResult::SUCCESS;
+                parse(parser, resp.body);
+            }},
+            {0x01, [&](){
+                resp.data_access_result = make_data_access_result(parser.raw_uint8());
+            }}
+        });
+    }
 }
 
 }

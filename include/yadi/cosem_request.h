@@ -23,8 +23,7 @@ struct NullRequestBody {};
 
 struct BasicRequest
 {
-    InvokeId invoke_id;
-    Priority priority;
+    InvokeIdAndPriority invoke_id_and_priority;
     CosemAttributeDescriptor descriptor;
 };
 
