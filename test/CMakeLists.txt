@@ -1,15 +1,32 @@
-cmake_minimum_required(VERSION 2.8.3)
-cmake_policy(SET CMP0048 NEW)
-project(yadi_dlms_test
-        VERSION 0.0.1)
+cmake_minimum_required(VERSION 3.10)
 
-## Sources
-set(yadi_test_SRC
-        ../src/data_type.cpp
+project(
+        yadi_dlms_test
+        
+        LANGUAGES
+                CXX
+)
+
+add_executable(
+        yadi_dlms_test 
+        
         catchmain.cpp
-        test_dlms_type.cpp)
+        src/test_cosem_serializer.cpp
 
-include_directories(../include)
+        ../src/cosem_serializer.cpp
+)
 
-## Add yadi test target
-add_executable(${PROJECT_NAME} ${yadi_test_SRC})
+set_target_properties(
+        yadi_dlms_test
+
+        PROPERTIES
+                CXX_STANDARD 17
+)
+
+target_include_directories(
+        yadi_dlms_test
+
+        PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../include
+)
