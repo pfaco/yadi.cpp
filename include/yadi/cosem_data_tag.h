@@ -10,7 +10,7 @@ enum class DataTag : uint8_t
     ARRAY = 1,
     STRUCTURE = 2,
     BOOLEAN = 3,
-    BITSTRING = 4,
+    BIT_STRING = 4,
     INT32 = 5,
     UINT32 = 6,
     OCTET_STRING = 9,

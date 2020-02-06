@@ -31,6 +31,7 @@ public:
 
     void visible_string(const std::string &value);
     void octet_string(const std::vector<uint8_t> &value);
+    void bit_string(const std::vector<bool> &value);
 
     void array_header(size_t size);
     void struct_header(size_t size);
@@ -65,6 +66,7 @@ static inline void serialize(CosemSerializer &serializer, double value) {seriali
 static inline void serialize(CosemSerializer &serializer, bool value) {serializer.boolean(value);}
 static inline void serialize(CosemSerializer &serializer, const std::string &value) {serializer.visible_string(value);}
 static inline void serialize(CosemSerializer &serializer, const std::vector<uint8_t> &value) {serializer.octet_string(value);}
+static inline void serialize(CosemSerializer &serializer, const std::vector<bool> &value) {serializer.bit_string(value);}
 
 template<typename T>
 static inline void serialize_optional(CosemSerializer &serializer, T &value) {

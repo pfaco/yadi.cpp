@@ -29,6 +29,7 @@ public:
 
     std::string visible_string();
     std::vector<uint8_t> octet_string();
+    std::vector<bool> bit_string();
 
     size_t array_size();
     size_t struct_size();
@@ -70,6 +71,7 @@ static inline void parse(CosemParser &parser, double &value) { value = parser.fl
 static inline void parse(CosemParser &parser, bool &value) { value = parser.boolean(); }
 static inline void parse(CosemParser &parser, std::string &value) { value = parser.visible_string(); }
 static inline void parse(CosemParser &parser, std::vector<uint8_t> &value) { value = parser.octet_string(); }
+static inline void parse(CosemParser &parser, std::vector<bool> &value) { value = parser.bit_string(); }
 
 static inline void parse(CosemParser &parser, RawResponseBody &value) {
     parser.all_available_raw_data(value.value);
