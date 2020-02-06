@@ -38,7 +38,7 @@ public:
     uint8_t enumeration();
 
     uint8_t raw_uint8();
-    void raw_data(std::vector<uint8_t> &buffer);
+    void all_available_raw_data(std::vector<uint8_t> &buffer);
 
     void check_response(ResponseTag tag, ResponseType type);
 
@@ -51,7 +51,7 @@ private:
     std::unique_ptr<impl> impl_;
 };
 
-class CosemParserError : std::exception {
+struct CosemParserError : std::exception {
     const char * what() const noexcept override {
         return "COSEM parser error";
     }
@@ -72,7 +72,7 @@ static inline void parse(CosemParser &parser, std::string &value) { value = pars
 static inline void parse(CosemParser &parser, std::vector<uint8_t> &value) { value = parser.octet_string(); }
 
 static inline void parse(CosemParser &parser, RawResponseBody &value) {
-    parser.raw_data(value.value);
+    parser.all_available_raw_data(value.value);
 }
 
 template<typename Body = RawResponseBody>

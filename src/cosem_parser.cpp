@@ -142,7 +142,7 @@ uint8_t CosemParser::raw_uint8() {
     return impl_->is.read_u8();
 }
 
-void CosemParser::raw_data(std::vector<uint8_t> &buffer) {
+void CosemParser::all_available_raw_data(std::vector<uint8_t> &buffer) {
     impl_->is.read_buffer(std::back_inserter(buffer), impl_->is.available());
 }
 
@@ -160,7 +160,7 @@ bool CosemParser::optional() {
     if (val == 0x01) {
         return true;
     }
-    if (val = 0x00) {
+    else if (val == 0x00) {
         return false;
     }
     throw CosemParserError{};

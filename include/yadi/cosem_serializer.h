@@ -108,7 +108,7 @@ template<typename InvocationParameters = NullRequestBody>
 void serialize(CosemSerializer &serializer, ActionRequest<InvocationParameters> &req) {
     serializer.request(RequestTag::ACTION_REQUEST, RequestType::NORMAL);
     ::dlms::serialize(serializer, req.basic);
-    ::dlms::serialize_optional(serializer, req.access_selection);
+    ::dlms::serialize_optional(serializer, req.invocation_parameters);
 }
 
 }
