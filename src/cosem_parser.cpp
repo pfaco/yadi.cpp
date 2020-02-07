@@ -33,10 +33,6 @@ namespace
             throw CosemParserError{};
         }
 
-        if (size > is.available()) {
-            throw CosemParserError{};
-        }
-
         return size;
     }
 }
