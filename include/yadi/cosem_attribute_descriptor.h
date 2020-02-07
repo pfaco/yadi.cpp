@@ -9,7 +9,7 @@ namespace dlms
 struct CosemAttributeDescriptor
 {
     uint16_t class_id;
-    LogicalName logical_name;
+    std::array<uint8_t,6> logical_name;
     int8_t index;
 };
 

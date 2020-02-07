@@ -80,9 +80,9 @@ static inline void parse(CosemParser &parser, RawResponseBody &value) {
 }
 
 template<typename Body = RawResponseBody>
-void parse(CosemParser &parser, GetResponse<Body> &resp) {
+GetResponse<Body> parse_get_normal(CosemParser &parser) {
     parser.check_response(ResponseTag::GET_RESPONSE, ResponseType::NORMAL);
-    resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
+    GetResponse<Body> resp{InvokeIdAndPriority(parser.raw_uint8()), {}, {}};
     parser.parse_by_index({
         {0x00, [&] {
             resp.result = DataAccessResult::SUCCESS;
@@ -93,17 +93,21 @@ void parse(CosemParser &parser, GetResponse<Body> &resp) {
             resp.result = ::dlms::make_data_access_result(parser.raw_uint8());
         }}
     });
+    return resp;
 }
 
-static inline void parse(CosemParser &parser, SetResponse &resp) {
+static inline SetResponse parse_set_normal(CosemParser &parser) {
     parser.check_response(ResponseTag::SET_RESPONSE, ResponseType::NORMAL);
-    resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
-    resp.result = ::dlms::make_data_access_result(parser.raw_uint8());
+    return SetResponse{
+        InvokeIdAndPriority(parser.raw_uint8()),
+        ::dlms::make_data_access_result(parser.raw_uint8())
+    };
 }
 
 template<typename Body = RawResponseBody>
-void parse(CosemParser &parser, ActionResponse<Body> &resp) {
+ActionResponse<Body>  parse_action_normal(CosemParser &parser) {
     parser.check_response(ResponseTag::ACTION_RESPONSE, ResponseType::NORMAL);
+    ActionResponse<Body> resp;
     resp.invoke_id_and_priority = InvokeIdAndPriority(parser.raw_uint8());
     resp.result = ::dlms::make_action_access_result(parser.raw_uint8());
     if (parser.optional()) {
@@ -117,6 +121,7 @@ void parse(CosemParser &parser, ActionResponse<Body> &resp) {
             }}
         });
     }
+    return resp;
 }
 
 }

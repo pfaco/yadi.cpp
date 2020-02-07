@@ -67,18 +67,18 @@ int main(int argc, char * argv[])
         MyCrazyData crazy_data{0x31, 0x2223, 0x12345678};
         std::vector<bool> mybitstring = {0,1,1,0,0,1,1,1,0,1,0,1,0};
 
-        auto resp = cosem.get_normal<std::vector<bool>>(serial, {1, "1.0.1.8.0.255", 2});
+        auto resp = cosem.get_normal<std::vector<bool>>(serial, {1, {1,0,1,8,0,255}, 2});
         std::cout << "invoke = " << (int)resp.invoke_id_and_priority.value() << '\n';
         std::cout << "result = " << (int)resp.result << '\n';
         std::cout << "value = "; print_buffer(resp.body);
         std::cout << '\n';
 
-        auto setresp = cosem.set_normal<std::vector<bool>>(serial, {1, "1.0.1.8.0.255", 2}, mybitstring);
+        auto setresp = cosem.set_normal<std::vector<bool>>(serial, {1, {1,0,1,8,0,255}, 2}, mybitstring);
         std::cout << "invoke = " << (int)setresp.invoke_id_and_priority.value() << '\n';
         std::cout << "result = " << (int)setresp.result << '\n';
         std::cout << '\n';
 
-        auto actionresp = cosem.action_normal<dlms::RawResponseBody>(serial, {129, "0.1.0.1.0.255", 2});
+        auto actionresp = cosem.action_normal<dlms::RawResponseBody>(serial, {129, {1,0,1,8,0,255}, 2});
         std::cout << "invoke = " << (int)setresp.invoke_id_and_priority.value() << '\n';
         std::cout << "result = " << (int)setresp.result << '\n';
         std::cout << '\n';

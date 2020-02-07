@@ -148,13 +148,13 @@ void CosemSerializer::optional() {
 	impl_->os.write_u8(0x01);
 }
 
-void CosemSerializer::invoke_id_and_priority(InvokeIdAndPriority &InvokeIdAndPriority) {
+void CosemSerializer::invoke_id_and_priority(const InvokeIdAndPriority &InvokeIdAndPriority) {
 	impl_->os.write_u8(InvokeIdAndPriority.value());
 }
 
 void CosemSerializer::attribute_descriptor(const CosemAttributeDescriptor &att) {
 	impl_->os.write_u16(att.class_id);
-	impl_->os.write_buffer(att.logical_name.value().data(), att.logical_name.value().size());
+	impl_->os.write_buffer(att.logical_name.data(), att.logical_name.size());
 	impl_->os.write_i8(att.index);
 }
 

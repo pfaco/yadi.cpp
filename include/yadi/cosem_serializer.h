@@ -43,7 +43,7 @@ public:
 
     void nulldata();
     void optional();
-    void invoke_id_and_priority(InvokeIdAndPriority &InvokeIdAndPriority);
+    void invoke_id_and_priority(const InvokeIdAndPriority &InvokeIdAndPriority);
     void attribute_descriptor(const CosemAttributeDescriptor &att);
     void request(RequestTag request_tag, RequestType request_type);
 
@@ -70,37 +70,37 @@ static inline void serialize(CosemSerializer &serializer, const std::vector<uint
 static inline void serialize(CosemSerializer &serializer, const std::vector<bool> &value) {serializer.bit_string(value);}
 
 template<typename T>
-static inline void serialize_optional(CosemSerializer &serializer, T &value) {
+static inline void serialize_optional(CosemSerializer &serializer, const T &value) {
     serializer.optional();
     ::dlms::serialize(serializer, value);
 }
 
 template<>
-void serialize_optional(CosemSerializer &serializer, NullAccessSelection &access_selection) {
+void serialize_optional(CosemSerializer &serializer, const NullAccessSelection &access_selection) {
     (void)access_selection;
     serializer.nulldata();
 }
 
 template<>
-void serialize_optional(CosemSerializer &serializer, NullRequestBody &body) {
+void serialize_optional(CosemSerializer &serializer, const NullRequestBody &body) {
     (void)body;
     serializer.nulldata();
 }
 
-static inline void serialize(CosemSerializer &serializer, BasicRequest &req) {
+static inline void serialize(CosemSerializer &serializer, const BasicRequest &req) {
     serializer.invoke_id_and_priority(req.invoke_id_and_priority);
     serializer.attribute_descriptor(req.descriptor);
 }
 
 template<typename AccessSelection = NullAccessSelection>
-void serialize(CosemSerializer &serializer, GetRequest<AccessSelection> &req) {
+void serialize(CosemSerializer &serializer, const GetRequest<AccessSelection> &req) {
     serializer.request(RequestTag::GET_REQUEST, RequestType::NORMAL);
     ::dlms::serialize(serializer, req.basic);
     ::dlms::serialize_optional(serializer, req.access_selection);
 }
 
 template<typename Body = NullRequestBody, typename AccessSelection = NullAccessSelection>
-void serialize(CosemSerializer &serializer, SetRequest<Body,AccessSelection> &req) {
+void serialize(CosemSerializer &serializer, const SetRequest<Body,AccessSelection> &req) {
     serializer.request(RequestTag::SET_REQUEST, RequestType::NORMAL);
     ::dlms::serialize(serializer, req.basic);
     ::dlms::serialize_optional(serializer, req.access_selection);
@@ -108,7 +108,7 @@ void serialize(CosemSerializer &serializer, SetRequest<Body,AccessSelection> &re
 }
 
 template<typename InvocationParameters = NullRequestBody>
-void serialize(CosemSerializer &serializer, ActionRequest<InvocationParameters> &req) {
+void serialize(CosemSerializer &serializer, const ActionRequest<InvocationParameters> &req) {
     serializer.request(RequestTag::ACTION_REQUEST, RequestType::NORMAL);
     ::dlms::serialize(serializer, req.basic);
     ::dlms::serialize_optional(serializer, req.invocation_parameters);

@@ -16,24 +16,28 @@ namespace
 
     static size_t read_size(ByteInputStream &is) {
         size_t size = is.read_u8();
-        if (size <= 0x80) {
-            return size;
-        }
-        else if (size == 0x81) {
-            return is.read_u8();
+        
+        if (size == 0x81) {
+            size = is.read_u8();
         }
         else if (size == 0x82) {
-            return is.read_u16();
+            size = is.read_u16();
         }
         else if (size == 0x83) {
-            return (static_cast<uint32_t>(is.read_u16()) << 8U) | is.read_u8();
+            size = (static_cast<uint32_t>(is.read_u16()) << 8U) | is.read_u8();
         }
         else if (size == 0x84) {
-            return is.read_u32();
+            size = is.read_u32();
         }
-        else {
+        else if (size > 0x80) {
             throw CosemParserError{};
         }
+
+        if (size > is.available()) {
+            throw CosemParserError{};
+        }
+
+        return size;
     }
 }
 

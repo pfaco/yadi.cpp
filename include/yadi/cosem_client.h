@@ -18,13 +18,10 @@ public:
         reset();
         CosemSerializer serializer(buffer_tx);
         CosemParser parser(buffer_rx);
-        GetRequest<AccessSelector> req{{invoke_and_and_priority, att}, access_selector};
-        GetResponse<ResponseBody> resp;
-        ::dlms::serialize(serializer, req);
+        ::dlms::serialize(serializer, GetRequest<AccessSelector>{{invoke_and_and_priority, att}, access_selector});
         serial.write(buffer_tx);
         serial.read(buffer_rx);
-        ::dlms::parse(parser, resp);
-        return std::move(resp);
+        return ::dlms::parse_get_normal<ResponseBody>(parser);
     }
 
     template<typename Body, typename Serial, typename AccessSelector = NullAccessSelection>
@@ -32,13 +29,10 @@ public:
         reset();
         CosemSerializer serializer(buffer_tx);
         CosemParser parser(buffer_rx);
-        SetRequest<Body,AccessSelector> req{{invoke_and_and_priority, att}, access_selector, data};
-        SetResponse resp;
-        ::dlms::serialize(serializer, req);
+        ::dlms::serialize(serializer, SetRequest<Body,AccessSelector>{{invoke_and_and_priority, att}, access_selector, data});
         serial.write(buffer_tx);
         serial.read(buffer_rx);
-        ::dlms::parse(parser, resp);
-        return std::move(resp);
+        return ::dlms::parse_set_normal(parser);
     }
 
     template<typename Body, typename Serial, typename InvocationParameters = NullAccessSelection>
@@ -46,13 +40,10 @@ public:
         reset();
         CosemSerializer serializer(buffer_tx);
         CosemParser parser(buffer_rx);
-        ActionRequest<InvocationParameters> req{{invoke_and_and_priority, att}, invocation_parameters};
-        ActionResponse<Body> resp;
-        ::dlms::serialize(serializer, req);
+        ::dlms::serialize(serializer, ActionRequest<InvocationParameters>{{invoke_and_and_priority, att}, invocation_parameters});
         serial.write(buffer_tx);
         serial.read(buffer_rx);
-        ::dlms::parse(parser, resp);
-        return std::move(resp);
+        return ::dlms::parse_action_normal<Body>(parser);
     }
 
 private:
