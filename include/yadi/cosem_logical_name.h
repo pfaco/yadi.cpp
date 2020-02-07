@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <sstream>
+#include <algorithm>
 
 namespace dlms
 {

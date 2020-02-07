@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include <yadi/cosem_invoke_id_and_priority.h>
 #include <yadi/cosem_attribute_descriptor.h>
 #include <yadi/cosem_request.h>
@@ -73,13 +74,13 @@ static inline void serialize_optional(CosemSerializer &serializer, T &value) {
 }
 
 template<>
-static inline void serialize_optional(CosemSerializer &serializer, NullAccessSelection &access_selection) {
+void serialize_optional(CosemSerializer &serializer, NullAccessSelection &access_selection) {
     (void)access_selection;
     serializer.nulldata();
 }
 
 template<>
-static inline void serialize_optional(CosemSerializer &serializer, NullRequestBody &body) {
+void serialize_optional(CosemSerializer &serializer, NullRequestBody &body) {
     (void)body;
     serializer.nulldata();
 }

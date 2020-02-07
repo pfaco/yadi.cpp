@@ -1,6 +1,7 @@
 #include <yadi/cosem_serializer.h>
 #include <yadi/cosem_data_tag.h>
 #include <iostream>
+#include <cstring>
 #include "byte_output_stream.h"
 
 namespace dlms

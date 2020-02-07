@@ -1,5 +1,6 @@
 #include <yadi/cosem_parser.h>
 #include <yadi/cosem_data_tag.h>
+#include <cstring>
 #include "byte_input_stream.h"
 
 namespace dlms

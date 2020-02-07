@@ -5,6 +5,8 @@
 #include <functional>
 #include <yadi/cosem_response.h>
 #include <unordered_map>
+#include <memory>
+
 namespace dlms
 {
 
