@@ -103,6 +103,23 @@ void CosemSerializer::octet_string(const std::vector<uint8_t> &value) {
 	impl_->os.write_buffer(reinterpret_cast<const uint8_t*>(value.data()), value.size());
 }
 
+void CosemSerializer::bit_string(const std::vector<bool> &value) {
+	std::vector<uint8_t> bytes;
+	for (size_t i = 0; i < value.size(); i += 8) {
+		uint8_t byte_value = 0;
+		for (size_t k = i; k < (i+8); ++k) {
+			byte_value <<= 1;
+			if (k < value.size()) {
+				byte_value |= value[k] ? 0x01 : 0x00;
+			}
+		}
+		bytes.push_back(byte_value);
+	}
+	impl_->os.write_u8(static_cast<uint8_t>(DataTag::BIT_STRING));
+    write_size(impl_->os, value.size());
+	impl_->os.write_buffer(reinterpret_cast<const uint8_t*>(bytes.data()), bytes.size());
+}
+
 void CosemSerializer::array_header(size_t size) {
 	impl_->os.write_u8(static_cast<uint8_t>(DataTag::ARRAY));
 	write_size(impl_->os, size);

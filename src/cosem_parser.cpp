@@ -118,6 +118,22 @@ std::vector<uint8_t> CosemParser::octet_string() {
     return vec;
 }
 
+std::vector<bool> CosemParser::bit_string() {
+	check_tag(DataTag::BIT_STRING, impl_->is.read_u8());
+    size_t size = read_size(impl_->is);
+    std::vector<bool> vec;
+    for (size_t i = 0; i < size; i += 8) {
+        uint8_t value = impl_->is.read_u8();
+        for (auto k = i; k < (i+8); ++k) {
+            if (k < size) {
+                vec.push_back((value & 0x80) == 0x80);
+                value <<= 1;
+            }
+        }
+    }
+    return vec;
+}
+
 size_t CosemParser::array_size() {
 	check_tag(DataTag::ARRAY, impl_->is.read_u8());
     return read_size(impl_->is);
@@ -143,7 +159,7 @@ uint8_t CosemParser::raw_uint8() {
     return impl_->is.read_u8();
 }
 
-void CosemParser::raw_data(std::vector<uint8_t> &buffer) {
+void CosemParser::all_available_raw_data(std::vector<uint8_t> &buffer) {
     impl_->is.read_buffer(std::back_inserter(buffer), impl_->is.available());
 }
 
@@ -161,7 +177,7 @@ bool CosemParser::optional() {
     if (val == 0x01) {
         return true;
     }
-    if (val = 0x00) {
+    else if (val == 0x00) {
         return false;
     }
     throw CosemParserError{};
