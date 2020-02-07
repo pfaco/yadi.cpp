@@ -37,6 +37,7 @@
 # Eclipse files
 *.cproject
 *.project
+*.vscode
 
 # CmakeFiles
 CmakeFiles/*
